@@ -1,0 +1,79 @@
+\name{SKIRTOR_interp}
+\alias{SKIRTOR_interp}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+Interpolate the Fritz 2006 AGN Templates
+}
+\description{
+Interpolates between non-computed values of the Stalevski SKIRTOR AGN Templates using a mixture of schemes. This is similar to the approach used for \code{\link{Dale_interp}}. The model is much too complex to summarise here, so interested readers should refer to the source papers if using this function for science.
+}
+\usage{
+AGNinterp(lum = 1e+44, t = 4, p = 1, q = 1, oa = 60, R = 60,
+                             i=0, em_factor = 1, SKIRTOR = NULL, Temple_emline = NULL)
+}
+\arguments{
+  \item{lum}{
+Numeric scalar; AGN bolometric luminosity in erg/s. This is of the illuminating accretion source, so actual observed output will vary depending on the geometry of the dust torus.
+}
+  \item{t}{
+Average edge-on optical depth at 9.7 micron.
+}
+  \item{p}{
+Index for radial density gradient.
+}
+  \item{q}{
+Index for angular density gradient.
+}
+  \item{oa}{
+Angle from equator to edge of torus.
+}
+  \item{R}{
+  Ratio of outer radius to inner radius.
+}
+  \item{i}{
+Numeric scalar; angle of observation in degrees, where 0 is edge on with torus, and 90 is polar aligned.
+}
+  \item{em_factor}{
+The strength of the emission lines compared to the Fritz continuum. 
+}
+  \item{SKIRTOR}{
+The \option{SKIRTOR} data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
+}
+  \item{Temple_emline}{
+The emission line data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
+}
+}
+\details{
+The below is taken directly from the included documentation:
+
+A composition of power-laws, with different spectral indexes as a function of the wavelength, was used to model the primary source (i.e. accretion disk SED) SED taken from the file pwlbb05.dat.                                          
+
+Standard, Galactic composition of dust, with graphite and astronomical silicates. The grain size distribution is a power law with index -3.5. Scattering and absorption coefficients taken from Laor and Draine (1993). Number of different species: 2 (Graphite and Silicate only).                      
+
+The inner radius is set by the sublimation temperature of graphite grains: T = 1500 K. The dust sublimation radius is Rmin = 1.3*L46^0.5*T^(-2.8) pc [Barvainis (1987)] where L46=L/(1e46 erg/s), and T is the sublimation temperature. The dust density throughout the torus is expressed by the following: rho(r,theta)=A*r^(beta)exp(-gamma*cos(theta)), where A is a normalization costant, beta and gamma are, in the name of the model, be and al, respectively.
+
+The emission lines are taken from Temple+21, where they represent the average emission lines found
+in a pure AGN sample from SDSS. Futher details are available in that paper. 
+}
+\value{
+Numeric Matrix; first column is observed wavelength (Angstroms) and second column is observed luminosity (erg/s/Ang).
+}
+\references{
+Feltre et al, 2012, MNRAS, 426, 120 \cr
+Fritz et al, 2006, MNRAS, 366, 767 \cr
+Temple et al, 2021, MNRAS, 508, 7374
+}
+\author{
+Aaron Robotham
+}
+\seealso{
+\code{\link{Fritz}}
+}
+\examples{
+plot(AGNinterp(), type='l', log='xy', xlab='Wave / Ang', ylab='Lum / erg/s/A')
+lines(AGNinterp(an=0), col='blue')
+lines(AGNinterp(an=90), col='red')
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ Fritz }% use one of  RShowDoc("KEYWORDS")

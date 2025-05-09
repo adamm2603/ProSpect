@@ -1,0 +1,10 @@
+load("/Users/00115410/Desktop/ProSpect_emline/data/AbsorbLines.rda")
+load("/Users/00115410/Desktop/ProSpect_emline/data/Fritz.interp.rda")
+load("/Users/00115410/Desktop/ProSpect_emline/data/Fritz_interp.rda")
+Fritz_interp
+Fritz_interp.rda
+load("/Users/00115410/Desktop/ProSpect_emline/data/LKL10_NormHalpha.rda")
+LKL10_NormHalpha
+load("/Users/00115410/Desktop/ProSpect_emline/data/Fritz_interp.rda")
+Fritz_interp
+load("/Users/00115410/Desktop/ProSpect_emlines/ProSpect_emline/data/SKIRTOR.rda")

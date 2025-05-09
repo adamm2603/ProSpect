@@ -9,7 +9,7 @@ Interpolates between non-computed values of the Fritz 2006 AGN Templates using a
 }
 \usage{
 AGNinterp(lum = 1e+44, ct = 60, al = 4, be = -0.5, ta = 1, rm = 60, an = 30,
-Fritz = NULL)
+em_factor = 1, Fritz = NULL, EmSpec = NULL)
 }
 \arguments{
   \item{lum}{
@@ -33,8 +33,14 @@ Numeric scalar; outer to inner torus radius ratio.
   \item{an}{
 Numeric scalar; angle of observation in degrees, where 0 is edge on with torus, and 90 is polar aligned.
 }
+  \item{em_factor}{
+The strength of the emission lines compared to the Fritz continuum. 
+}
   \item{Fritz}{
 The \option{Fritz} data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
+}
+  \item{EmSpec}{
+The emission line data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
 }
 }
 \details{
@@ -45,13 +51,17 @@ A composition of power-laws, with different spectral indexes as a function of th
 Standard, Galactic composition of dust, with graphite and astronomical silicates. The grain size distribution is a power law with index -3.5. Scattering and absorption coefficients taken from Laor and Draine (1993). Number of different species: 2 (Graphite and Silicate only).                      
 
 The inner radius is set by the sublimation temperature of graphite grains: T = 1500 K. The dust sublimation radius is Rmin = 1.3*L46^0.5*T^(-2.8) pc [Barvainis (1987)] where L46=L/(1e46 erg/s), and T is the sublimation temperature. The dust density throughout the torus is expressed by the following: rho(r,theta)=A*r^(beta)exp(-gamma*cos(theta)), where A is a normalization costant, beta and gamma are, in the name of the model, be and al, respectively.
+
+The emission lines are taken from Temple+21, where they represent the average emission lines found
+in a pure AGN sample from SDSS. Futher details are available in that paper. 
 }
 \value{
 Numeric Matrix; first column is observed wavelength (Angstroms) and second column is observed luminosity (erg/s/Ang).
 }
 \references{
 Feltre et al, 2012, MNRAS, 426, 120 \cr
-Fritz et al, 2006, MNRAS, 366, 767
+Fritz et al, 2006, MNRAS, 366, 767 \cr
+Temple et al, 2021, MNRAS, 508, 7374
 }
 \author{
 Aaron Robotham
