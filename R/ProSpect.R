@@ -50,6 +50,7 @@ ProSpectSED = function(SFH = SFHfunc,
                           IGMabsorb = 0,
                           Inoue14_LAFcoef = NULL,
                           Inoue14_DLAcoef = NULL,
+                          AGN_gal_screen = TRUE,
                           ...) {
   #call = match.call()
 
@@ -202,19 +203,35 @@ ProSpectSED = function(SFH = SFHfunc,
 
       dustlum_AGN = NA
       dustmass_AGN = NA
-      AGN = atten_emit(
-        wave = AGN$wave,
-        flux = AGN$lum * .erg_to_lsol,
-        tau = tau_screen,
-        pow = pow_screen,
-        alpha_SF = alpha_SF_screen,
-        Dale = Dale,
-        Dale_M2L_func = Dale_M2L_func,
-        waveout = waveout,
-        Eb = Eb,
-        L0 = L0,
-        LFWHM = LFWHM
-      )
+      if (isFALSE(AGN_gal_screen)) {
+
+        # Skip additional host-galaxy screening of the AGN.
+        AGN = list(
+          final = data.frame(
+            wave = AGN$wave,
+            flux = AGN$lum * .erg_to_lsol
+          ),
+          total_atten = 0,
+          dustmass = 0
+        )
+
+      } else {
+
+        # Apply the existing host-galaxy screen.
+        AGN = atten_emit(
+          wave = AGN$wave,
+          flux = AGN$lum * .erg_to_lsol,
+          tau = tau_screen,
+          pow = pow_screen,
+          alpha_SF = alpha_SF_screen,
+          Dale = Dale,
+          Dale_M2L_func = Dale_M2L_func,
+          waveout = waveout,
+          Eb = Eb,
+          L0 = L0,
+          LFWHM = LFWHM
+        )
+      }
       if (!is.null(Dale_M2L_func) & returnall) {
         dustlum_screen = dustlum_screen + AGN$total_atten
         dustmass_screen = dustmass_screen + AGN$dustmass
