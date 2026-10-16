@@ -285,25 +285,30 @@ ProSpectSED = function(SFH = SFHfunc,
         dustlum_AGN = AGN$total_atten
         dustmass_AGN = AGN$dustmass
       }
-      #Second we re-attenuate the above by the screen (since it still has to pass out of the galaxy)
-      AGN = atten_emit(
-        wave = AGN$final$wave,
-        flux = AGN$final$flux,
-        tau = tau_screen,
-        pow = pow_screen,
-        alpha_SF = alpha_SF_screen,
-        Dale = Dale,
-        Dale_M2L_func = Dale_M2L_func,
-        waveout = waveout,
-        Eb = Eb,
-        L0 = L0,
-        LFWHM = LFWHM
-      )
+      # Apply the host-galaxy screen only when requested.
+      if (isTRUE(AGN_gal_screen)) {
+        AGN = atten_emit(
+          wave = AGN$final$wave,
+          flux = AGN$final$flux,
+          tau = tau_screen,
+          pow = pow_screen,
+          alpha_SF = alpha_SF_screen,
+          Dale = Dale,
+          Dale_M2L_func = Dale_M2L_func,
+          waveout = waveout,
+          Eb = Eb,
+          L0 = L0,
+          LFWHM = LFWHM
+        )
 
-      if (!is.null(Dale_M2L_func) & returnall) {
-        dustlum_screen = dustlum_screen + AGN$total_atten
-        dustmass_screen = dustmass_screen + AGN$dustmass
-      } else{
+        if (!is.null(Dale_M2L_func) & returnall) {
+          dustlum_screen = dustlum_screen + AGN$total_atten
+          dustmass_screen = dustmass_screen + AGN$dustmass
+        } else {
+          dustlum_AGN = 0
+          dustmass_AGN = 0
+        }
+      } else if (is.null(Dale_M2L_func) | !returnall) {
         dustlum_AGN = 0
         dustmass_AGN = 0
       }
