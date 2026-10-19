@@ -69,7 +69,6 @@ SKIRTOR_interp = function(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, p = 1,
 
 
 
-
 SKIRTOR2_interp = function(lum = 1e+44, ct = 40, rm = 60,
                            ta = 1, p = 1, q = 1,
                            SKIRTOR = NULL) {
@@ -105,32 +104,23 @@ SKIRTOR2_interp = function(lum = 1e+44, ct = 40, rm = 60,
     lapply(sed_list, function(x) x$lum)
   )
 
-  # Integrate over solid angle.
-  # Assumes inclinations are in degrees and the torus is
-  # axisymmetric with reflection symmetry.
+  # Convert inclination angles from degrees to radians
   theta <- inclinations * pi / 180
-  angular_weight <- sin(theta)
 
+  # Integrate isotropic-equivalent luminosity over solid angle.
+  # Assumes axisymmetry and reflection symmetry:
+  # L_total(lambda) = integral L_iso(lambda, theta) sin(theta) dtheta
   weighted_spectra <- sweep(
-    spectra, 2, angular_weight, "*"
+    spectra, 2, sin(theta), "*"
   )
 
   dtheta <- diff(theta)
 
   integrated <- rowSums(
-    (weighted_spectra[, -ncol(weighted_spectra),
-                      drop = FALSE] +
+    (weighted_spectra[, -ncol(weighted_spectra), drop = FALSE] +
      weighted_spectra[, -1, drop = FALSE]) *
       rep(dtheta / 2, each = nrow(spectra))
   )
-
-  # Normalise to obtain the angle-averaged spectrum
-  norm <- sum(
-    (angular_weight[-length(angular_weight)] +
-     angular_weight[-1]) * dtheta / 2
-  )
-
-  integrated <- integrated / norm
 
   data.frame(
     wave = sed_list[[1]]$wave,
