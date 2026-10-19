@@ -188,8 +188,13 @@ ProSpectSED = function(SFH = SFHfunc,
           an = AGNan,
           Fritz = AGN
         )
+
+        AGN_los = AGN
+        AGN_heating = AGN
+
       } else if (inherits(AGN, 'SKIRTOR')) {
-        AGN = SKIRTOR_interp(
+        # Line-of-sight SED: observed AGN emission
+        AGN_los = SKIRTOR_interp(
           lum = AGNlum,
           ta = AGNta,
           p = AGNp,
@@ -199,17 +204,31 @@ ProSpectSED = function(SFH = SFHfunc,
           an = AGNan,
           SKIRTOR = AGN
         )
+
+        # Angle-integrated SED: host-galaxy dust heating
+        AGN_heating = SKIRTOR2_interp(
+          lum = AGNlum,
+          ta = AGNta,
+          p = AGNp,
+          q = AGNq,
+          ct = AGNct,
+          rm = AGNrm,
+          SKIRTOR = AGN
+        )
+
+        AGN = AGN_los
       }
 
       dustlum_AGN = NA
       dustmass_AGN = NA
+
       if (isFALSE(AGN_gal_screen)) {
 
-        # Skip additional host-galaxy screening of the AGN.
+        # No additional host-galaxy screen
         AGN = list(
           final = data.frame(
-            wave = AGN$wave,
-            flux = AGN$lum * .erg_to_lsol
+            wave = AGN_los$wave,
+            flux = AGN_los$lum * .erg_to_lsol
           ),
           total_atten = 0,
           dustmass = 0
@@ -217,10 +236,13 @@ ProSpectSED = function(SFH = SFHfunc,
 
       } else {
 
-        # Apply the existing host-galaxy screen.
-        AGN = atten_emit(
-          wave = AGN$wave,
-          flux = AGN$lum * .erg_to_lsol,
+        # Calculate host dust response using the heating SED.
+        # NOTE: AGN_atten$final may contain both transmitted AGN
+        # light and re-emitted dust emission. Do not add it to
+        # AGN_los until those components have been separated.
+        AGN_atten = atten_emit(
+          wave = AGN_heating$wave,
+          flux = AGN_heating$lum * .erg_to_lsol,
           tau = tau_screen,
           pow = pow_screen,
           alpha_SF = alpha_SF_screen,
@@ -231,13 +253,26 @@ ProSpectSED = function(SFH = SFHfunc,
           L0 = L0,
           LFWHM = LFWHM
         )
+
+        # Preserve the line-of-sight AGN SED for now.
+        # Dust emission must be added separately once its
+        # component in AGN_atten$final has been identified.
+        AGN = list(
+          final = data.frame(
+            wave = AGN_los$wave,
+            flux = AGN_los$lum * .erg_to_lsol
+          ),
+          total_atten = AGN_atten$total_atten,
+          dustmass = AGN_atten$dustmass
+        )
       }
+
       if (!is.null(Dale_M2L_func) & returnall) {
         dustlum_screen = dustlum_screen + AGN$total_atten
         dustmass_screen = dustmass_screen + AGN$dustmass
       }
 
-      ## subtracts off AGN contribution to the radio continuum unless you specifically request to add it back
+      ## subtracts off AGN contribution to the radio continuum unless requested
       AGN$final = radiocont(
         wave = AGN$final$wave,
         flux = AGN$final$flux,
@@ -249,7 +284,7 @@ ProSpectSED = function(SFH = SFHfunc,
         wavesamp = seq(6, waveout_max, by = 0.1),
         flux_in = 'wave',
         flux_out = 'wave',
-        subtractonly = !addradio_AGN # whether to add AGN radio or just subtract Dale radio
+        subtractonly = !addradio_AGN
       )
 
       AGN = AGN$final
