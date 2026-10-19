@@ -66,3 +66,75 @@ SKIRTOR_interp = function(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, p = 1,
   return(data.frame(wave=SKIRTOR$Wave, lum = agn_spectrum))
 
 }
+
+
+
+
+SKIRTOR2_interp = function(lum = 1e+44, ct = 40, rm = 60,
+                           ta = 1, p = 1, q = 1,
+                           SKIRTOR = NULL) {
+
+  if (is.null(SKIRTOR)) {
+    data('SKIRTOR', envir = environment())
+  }
+
+  # Use the inclination grid supplied by the SKIRTOR data
+  inclinations <- sort(unique(as.numeric(SKIRTOR$an)))
+
+  if (length(inclinations) < 2) {
+    stop("At least two inclination angles are required.")
+  }
+
+  # Evaluate the existing interpolator at every inclination
+  sed_list <- lapply(inclinations, function(inc) {
+    SKIRTOR_interp(
+      lum = lum,
+      ta = ta,
+      p = p,
+      q = q,
+      ct = ct,
+      rm = rm,
+      an = inc,
+      SKIRTOR = SKIRTOR
+    )
+  })
+
+  # Each column contains one inclination's spectrum
+  spectra <- do.call(
+    cbind,
+    lapply(sed_list, function(x) x$lum)
+  )
+
+  # Integrate over solid angle.
+  # Assumes inclinations are in degrees and the torus is
+  # axisymmetric with reflection symmetry.
+  theta <- inclinations * pi / 180
+  angular_weight <- sin(theta)
+
+  weighted_spectra <- sweep(
+    spectra, 2, angular_weight, "*"
+  )
+
+  dtheta <- diff(theta)
+
+  integrated <- rowSums(
+    (weighted_spectra[, -ncol(weighted_spectra),
+                      drop = FALSE] +
+     weighted_spectra[, -1, drop = FALSE]) *
+      rep(dtheta / 2, each = nrow(spectra))
+  )
+
+  # Normalise to obtain the angle-averaged spectrum
+  norm <- sum(
+    (angular_weight[-length(angular_weight)] +
+     angular_weight[-1]) * dtheta / 2
+  )
+
+  integrated <- integrated / norm
+
+  data.frame(
+    wave = sed_list[[1]]$wave,
+    lum = integrated
+  )
+}
+
