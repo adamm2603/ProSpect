@@ -53,7 +53,7 @@ ProSpectSED = function(SFH = SFHfunc,
                           AGN_gal_screen = TRUE,
                           AGN_emission = c("viewing_angle", "angle_averaged"),
                           ...) {
-{
+
     AGN_emission = match.arg(AGN_emission)
     if (!is.null(waveout)) {
         waveout_max = max(waveout)
