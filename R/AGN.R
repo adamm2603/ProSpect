@@ -1,5 +1,5 @@
 Fritz_interp = function(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, al = 4, be = -0.5,
-                        Fritz = NULL){
+                        Fritz = NULL){ 
   if(is.null(Fritz)){
     Fritz=NULL
     data('Fritz', envir = environment())
