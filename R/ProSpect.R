@@ -51,6 +51,7 @@ ProSpectSED = function(SFH = SFHfunc,
                           Inoue14_LAFcoef = NULL,
                           Inoue14_DLAcoef = NULL,
                           AGN_gal_screen = TRUE,
+                          AGN_emission = c("viewing_angle", "angle_averaged"),
                           ...) {
   #call = match.call()
 
