@@ -53,6 +53,8 @@ ProSpectSED = function(SFH = SFHfunc,
                           AGN_gal_screen = TRUE,
                           AGN_emission = c("viewing_angle", "angle_averaged"),
                           ...) {
+  AGN_emission = match.arg(AGN_emission)
+
   #call = match.call()
 
   if(!is.null(waveout)){
@@ -180,14 +182,16 @@ ProSpectSED = function(SFH = SFHfunc,
       stop("Angle-averaged AGN emission requires a Fritz or SKIRTOR model")
         }
 
-    if(inherits(AGN, 'Fritz') |
-       inherits(AGN, 'SKIRTOR')) {
-    if (AGN_emission == "angle_averaged") {
-          AGN_model = AGN
+    if(inherits(AGN, 'Fritz') | inherits(AGN, 'SKIRTOR')) {
+      # Save the original template before interpolation when angle-averaged
+      # emission is requested.
+      if (AGN_emission == "angle_averaged") {
+        AGN_model = AGN
       }
-      #Use new model
+
+      # Interpolate the selected line-of-sight AGN spectrum.
       if (inherits(AGN, 'Fritz')) {
-        AGN = Fritz_interp(
+        selected = Fritz_interp(
           lum = AGNlum,
           ct = AGNct,
           al = AGNal,
@@ -197,8 +201,8 @@ ProSpectSED = function(SFH = SFHfunc,
           an = AGNan,
           Fritz = AGN
         )
-      } else if (inherits(AGN, 'SKIRTOR')) {
-        AGN = SKIRTOR_interp(
+      } else {
+        selected = SKIRTOR_interp(
           lum = AGNlum,
           ta = AGNta,
           p = AGNp,
@@ -212,66 +216,98 @@ ProSpectSED = function(SFH = SFHfunc,
 
       dustlum_AGN = NA
       dustmass_AGN = NA
+      host_atten = NULL
+
       if (AGN_emission == "angle_averaged") {
-      selected = AGN
-      mean_SED = AGN_angle_averaged_SED(
-      AGN_model, AGNlum, AGNct, AGNrm, AGNta,
-      AGNal, AGNbe, AGNp, AGNq)
-      direct = CF_screen_atten(
-       wave = selected$wave, flux = selected$lum * .erg_to_lsol,
-       tau = tau_screen, pow = pow_screen,
-       Eb = Eb, L0 = L0, LFWHM = LFWHM)
-       AGN = atten_emit(
-          wave = mean_SED$wave, flux = mean_SED$lum * .erg_to_lsol,
-          tau = tau_screen, pow = pow_screen,
-          alpha_SF = alpha_SF_screen, Dale = Dale,
-          Dale_M2L_func = Dale_M2L_func, waveout = waveout,
-          Eb = Eb, L0 = L0, LFWHM = LFWHM)
-         AGN$final = addspec(
-          wave1 = selected$wave, flux1 = direct$flux,
-          wave2 = AGN$emit$wave, flux2 = AGN$emit$flux,
-          extrap = 0, waveout = waveout)
-            }
-
-      
-      if (isFALSE(AGN_gal_screen)) {
-
-        # Skip additional host-galaxy screening of the AGN.
-        AGN = list(
-          final = data.frame(
-            wave = AGN$wave,
-            flux = AGN$lum * .erg_to_lsol
-          ),
-          total_atten = 0,
-          dustmass = 0
+        # The line-of-sight spectrum is the direct observed component, while
+        # the angle-averaged spectrum is used for the host-absorbed energy
+        # budget and the associated dust re-emission.
+        mean_SED = AGN_angle_averaged_SED(
+          AGN_model, AGNlum, AGNct, AGNrm, AGNta,
+          AGNal, AGNbe, AGNp, AGNq
         )
 
+        if (isTRUE(AGN_gal_screen)) {
+          direct = CF_screen_atten(
+            wave = selected$wave,
+            flux = selected$lum * .erg_to_lsol,
+            tau = tau_screen,
+            pow = pow_screen,
+            Eb = Eb,
+            L0 = L0,
+            LFWHM = LFWHM
+          )
+
+          host_atten = atten_emit(
+            wave = mean_SED$wave,
+            flux = mean_SED$lum * .erg_to_lsol,
+            tau = tau_screen,
+            pow = pow_screen,
+            alpha_SF = alpha_SF_screen,
+            Dale = Dale,
+            Dale_M2L_func = Dale_M2L_func,
+            waveout = waveout,
+            Eb = Eb,
+            L0 = L0,
+            LFWHM = LFWHM
+          )
+
+          AGN_final = addspec(
+            wave1 = selected$wave,
+            flux1 = direct$flux,
+            wave2 = host_atten$emit$wave,
+            flux2 = host_atten$emit$flux,
+            extrap = 0,
+            waveout = waveout
+          )
+        } else {
+          # No host-galaxy screen: retain only the selected direct spectrum.
+          AGN_final = data.frame(
+            wave = selected$wave,
+            flux = selected$lum * .erg_to_lsol
+          )
+        }
       } else {
-
-        # Apply the existing host-galaxy screen.
-        AGN = atten_emit(
-          wave = AGN$wave,
-          flux = AGN$lum * .erg_to_lsol,
-          tau = tau_screen,
-          pow = pow_screen,
-          alpha_SF = alpha_SF_screen,
-          Dale = Dale,
-          Dale_M2L_func = Dale_M2L_func,
-          waveout = waveout,
-          Eb = Eb,
-          L0 = L0,
-          LFWHM = LFWHM
-        )
+        # Standard viewing-angle mode: apply the host screen to the selected
+        # line-of-sight SED only when requested.
+        if (isTRUE(AGN_gal_screen)) {
+          host_atten = atten_emit(
+            wave = selected$wave,
+            flux = selected$lum * .erg_to_lsol,
+            tau = tau_screen,
+            pow = pow_screen,
+            alpha_SF = alpha_SF_screen,
+            Dale = Dale,
+            Dale_M2L_func = Dale_M2L_func,
+            waveout = waveout,
+            Eb = Eb,
+            L0 = L0,
+            LFWHM = LFWHM
+          )
+          AGN_final = host_atten$final
+        } else {
+          AGN_final = data.frame(
+            wave = selected$wave,
+            flux = selected$lum * .erg_to_lsol
+          )
+        }
       }
-      if (!is.null(Dale_M2L_func) & returnall) {
-        dustlum_screen = dustlum_screen + AGN$total_atten
-        dustmass_screen = dustmass_screen + AGN$dustmass
+
+      # Record dust absorption by the host screen only when that screen is on.
+      if (isTRUE(AGN_gal_screen) &&
+          !is.null(Dale_M2L_func) && returnall &&
+          !is.null(host_atten)) {
+        dustlum_screen = if (is.null(dustlum_screen)) 0 else dustlum_screen
+        dustmass_screen = if (is.null(dustmass_screen)) 0 else dustmass_screen
+        dustlum_screen = dustlum_screen + host_atten$total_atten
+        dustmass_screen = dustmass_screen + host_atten$dustmass
       }
 
-      ## subtracts off AGN contribution to the radio continuum unless you specifically request to add it back
-      AGN$final = radiocont(
-        wave = AGN$final$wave,
-        flux = AGN$final$flux,
+      # Subtract the AGN-associated radio continuum unless explicitly requested
+      # to add it back, matching the existing ProSpectSED behaviour.
+      AGN_final = radiocont(
+        wave = AGN_final$wave,
+        flux = AGN_final$flux,
         z = 0,
         Te = Te_AGN,
         ff_frac = ff_frac_AGN,
@@ -280,15 +316,14 @@ ProSpectSED = function(SFH = SFHfunc,
         wavesamp = seq(6, waveout_max, by = 0.1),
         flux_in = 'wave',
         flux_out = 'wave',
-        subtractonly = !addradio_AGN # whether to add AGN radio or just subtract Dale radio
+        subtractonly = !addradio_AGN
       )
 
-      AGN = AGN$final
+      AGN = AGN_final
       if (is.null(Final)) {
         Final = AGN
       } else if (length(Final$flux) == length(AGN$flux)) {
-        Final = data.frame(wave = Final$wave, flux = Final$flux +
-                             AGN$flux)
+        Final = data.frame(wave = Final$wave, flux = Final$flux + AGN$flux)
       } else {
         Final = addspec(
           wave1 = Final$wave,
@@ -551,371 +586,3 @@ ProSpectSED = function(SFH = SFHfunc,
   }
 }
 
-ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
-  if (is.null(Data$fit)) {
-    Data$fit = 'optim'
-  }
-  Data$fit = tolower(Data$fit)
-  if (is.null(Data$like)) {
-    Data$like = 'st'
-  }
-  if (is.null(Data$mon.names)) {
-    Data$mon.names = 'NULL'
-  }
-  if (is.null(Data$verbose)) {
-    Data$verbose = FALSE
-  }
-
-  if (Data$fit == 'optim' | Data$fit == 'cma') {
-    returnall = FALSE #fastest first!
-  } else if (Data$fit == 'check') {
-    returnall = TRUE
-  } else if ((
-    'masstot' %in% Data$mon.names |
-    'SFRburst' %in% Data$mon.names |
-    (length(grep(
-      'dustmass', Data$mon.names
-    )) > 0 |
-    length(grep(
-      'dustlum', Data$mon.names
-    )) > 0) & (Data$fit == 'ld' | Data$fit == 'la')
-  )) {
-    returnall = TRUE
-  } else{
-    returnall = FALSE #just to be safe!
-  }
-
-  names(parm) = Data$parm.names
-
-  if (!requireNamespace("ParmOff", quietly = TRUE)) {
-    stop("The ParmOff package is needed for parameter mapping in ProSpectSEDlike. Please install it from GitHub/asgr/ParmOff.", call. = FALSE)
-  }
-
-  logged_parm_names = NULL
-  if (!is.null(Data$logged)) {
-    if(is.logical(Data$logged)){
-      if (length(Data$logged) == 1) {
-        if (Data$logged) {
-          logged_parm_names = Data$parm.names
-        }
-      } else {
-        logged_parm_names = Data$parm.names[Data$logged]
-      }
-    }else{
-      logged_parm_names = Data$logged
-    }
-  }
-
-  if(is.null(Data$photom) & isTRUE(Data$mode == 'photom')){
-    Data$photom = Data$flux
-  }
-
-  if(is.null(Data$spec) & (isTRUE(Data$mode == 'spec') | is.null(Data$filtout))){
-    Data$spec = Data$flux
-  }
-
-  if(is.null(Data$photom) & isTRUE(Data$mode == 'both')){
-    Data$photom = Data$flux
-  }
-
-  if((isTRUE(Data$mode == 'photom') | isTRUE(Data$mode == 'both')) & is.null(Data$filtout)){
-    stop('Missing filout data!')
-  }
-
-  if((isTRUE(Data$mode == 'photom') | isTRUE(Data$mode == 'both')) & is.null(Data$photom)){
-    stop('Missing photom data!')
-  }
-
-  if((isTRUE(Data$mode == 'spec') | isTRUE(Data$mode == 'both')) & is.null(Data$spec)){
-    stop('Missing spec data!')
-  }
-
-  ## Implement Photoz fitting mode
-  if(("photoz" %in% names(Data$arglist)) & ("z" %in% Data$parm.names)) {
-    if (!requireNamespace("celestial", quietly = TRUE)) {
-      stop("The celestial package is needed for this to work. Please install it from GitHub/ASGR", call. = FALSE)
-    }
-    if (!(c("ref") %in% names(Data$arglist))){
-      if (!all(c("H0", "OmegaM", "OmegaL") %in% names(Data$arglist))){
-        stop("Cosmology must be specified for photo-z")
-      }
-    }
-    if(Data$arglist$photoz){
-
-      z_genSF = Data$arglist$z_genSF ## What redshift should we start star formation?
-
-      ztest = parm["z"]
-      if("z" %in% logged_parm_names){
-        ztest = 10^ztest
-      }
-
-      if(is.function(Data$arglist$IGMfunc)){
-        Data$arglist$IGMabsorb = Data$arglist$IGMfunc(ztest)
-      }else{
-        if(is.null(Data$arglist$IGMfunc)){
-          Data$arglist$IGMabsorb = 0 ## Default IGM absorption function
-        }else if (Data$arglist$IGMfunc == "Songaila04"){
-          Data$arglist$IGMabsorb = pnorm(ztest, mean = 3.8, sd = 1.2)
-        }else if (Data$arglist$IGMfunc == "Inoue14"){
-          Data$arglist$IGMabsorb = "Inoue14"
-        }else if (is.numeric(Data$arglist$IGMfunc)){
-          Data$arglist$IGMabsorb = Data$arglist$IGMfunc
-        }else{
-          stop("IGMfunc not valid type.")
-        }
-      }
-
-      if(is.null(Data$arglist$ref)){
-        agemax_new = (celestial::cosdistUniAgeAtz(ztest, H0 = Data$arglist$HO, OmegaM = Data$arglist$OmegaM, OmegaL = Data$arglist$OmegaL))*1e9 ##need to be in years
-        if(!is.null(z_genSF)){
-          agemax_new = (celestial::cosdistUniAgeAtz(ztest, H0 = Data$arglist$HO, OmegaM = Data$arglist$OmegaM, OmegaL = Data$arglist$OmegaL) - celestial::cosdistUniAgeAtz(z_genSF, H0 = Data$arglist$HO, OmegaM = Data$arglist$OmegaM, OmegaL = Data$arglist$OmegaL))*1e9 ##need to be in years
-        }
-        LumDist_Mpc_new = celestial::cosdistLumDist(z = ztest, H0 = Data$arglist$HO, OmegaM = Data$arglist$OmegaM, OmegaL = Data$arglist$OmegaL)
-      }else{
-        agemax_new = (celestial::cosdistUniAgeAtz(ztest, ref = Data$arglist$ref))*1e9 ##need to be in years
-        if(!is.null(z_genSF)){
-          agemax_new = (celestial::cosdistUniAgeAtz(ztest, ref = Data$arglist$ref) - celestial::cosdistUniAgeAtz(z_genSF, ref = Data$arglist$ref))*1e9 ##need to be in years
-        }
-        LumDist_Mpc_new = celestial::cosdistLumDist(z = ztest, ref = Data$arglist$ref)
-      }
-
-      magemax_new = agemax_new/1e9 ## need to be in Gyr
-      Zagemax_new = agemax_new/1e9
-
-      ## Now update the args in Data
-      Data$arglist$agemax = unname(agemax_new)
-      Data$arglist$magemax = unname(magemax_new)
-      Data$arglist$Zagemax = unname(Zagemax_new)
-      Data$arglist$LumDist_Mpc = unname(LumDist_Mpc_new)
-    }
-  }
-
-  if (!is.null(Data$constraints)) {
-    parm = Data$constraints(parm)
-  }
-
-  parm_lower = NULL
-  parm_upper = NULL
-  if (!is.null(Data$intervals)) {
-    parm_lower = as.list(Data$intervals$lo)
-    parm_upper = as.list(Data$intervals$hi)
-    names(parm_lower) = Data$parm.names
-    names(parm_upper) = Data$parm.names
-  }
-
-  parmlist = ParmOff::ParmOff(
-    .func = ProSpectSED,
-    .args = parm,
-    .lower = parm_lower,
-    .upper = parm_upper,
-    .logged = logged_parm_names,
-    .return = 'args',
-    .check = FALSE
-  )$current_args
-
-  if(any(lengths(parmlist) != 1L)){
-    stop('All fitting parameters must be scalar values.')
-  }
-
-  if('scat_scale' %in% Data$parm.names){
-    scat_scale = parmlist[['scat_scale']]
-    #parm = parm[-sel]
-    #Data$parm.names = Data$parm.names[-sel]
-  }else{
-    scat_scale = 1
-  }
-
-  if (Data$verbose) {
-    parmlist_print = unlist(parmlist, recursive = FALSE, use.names = TRUE)
-    message(parmlist_print)
-  }
-
-  Monitor = {}
-
-  if(isTRUE(Data$mode == 'spec') | isTRUE(Data$mode == 'both')){
-    #Because we will need to full spectrum for processing
-    filtout = NULL
-  }else{
-    filtout = Data$filtout
-  }
-
-  if (returnall) {
-    SEDout = ParmOff::ParmOff(
-      .func = ProSpectSED,
-      .args = c(
-        parmlist,
-        list(SFH = Data$SFH),
-        list(speclib = Data$speclib),
-        list(Dale = Data$Dale),
-        list(AGN = Data$AGN),
-        list(filtout = filtout),
-        list(filters = NULL),
-        list(returnall = TRUE),
-        list(Dale_M2L_func = Data$Dale_M2L_func),
-        Data$arglist
-      ),
-      .rem_args = 'scat_scale',
-      .return = 'func',
-      .check = FALSE
-    )
-    if(is.null(Data$filtout) | isTRUE(Data$mode == 'spec') | isTRUE(Data$mode == 'both')){
-      #this means we are in spec-z mode
-      if(isTRUE(Data$mode == 'both')){
-        Phot_out = photom_flux(SEDout$Photom[,'wave'], convert_freq2wave(SEDout$Photom[,'flux'], SEDout$Photom[,'wave'])*.jansky_to_cgs,
-                               outtype = 'Jansky', filters = Data$filtout)
-      }
-
-      if(!isTRUE(all.equal(SEDout$Photom[,'wave'], Data$spec[,'wave']))){ #if not already on the same grid we rebin
-        Spec_out = specReBin(wave = SEDout$Photom[,'wave'],
-                           flux = SEDout$Photom[,'flux'],
-                           wavegrid = Data$spec[,'wave'],
-                           logbin = ifelse(is.null(Data$logbin), TRUE, Data$logbin),
-                           rough = ifelse(is.null(Data$rough), TRUE, Data$rough)
-        )[,'flux']
-        SEDout$Photom = data.frame(wave = Data$spec[,'wave'],
-                                   flux = Spec_out)
-      }else{
-        Spec_out = SEDout$Photom[,'flux']
-      }
-    }else{
-      Phot_out = SEDout$Photom
-    }
-
-    if (length(grep('dustmass', Data$mon.names)) > 0) {
-      Monitor = c(dustmass = SEDout$dustmass)
-    }
-    if (length(grep('dustlum', Data$mon.names)) > 0) {
-      Monitor = c(Monitor, dustlum = SEDout$dustlum)
-    }
-    if ('masstot' %in% Data$mon.names) {
-      Monitor = c(Monitor, masstot = SEDout$Stars$masstot)
-    }
-    if ('SFRburst' %in% Data$mon.names) {
-      Monitor = c(Monitor, SFRburst = SEDout$Stars$SFRburst)
-    }
-  } else{
-
-    Photom = ParmOff::ParmOff(
-      .func = ProSpectSED,
-      .args = c(
-        parmlist,
-        list(SFH = Data$SFH),
-        list(speclib = Data$speclib),
-        list(Dale = Data$Dale),
-        list(AGN = Data$AGN),
-        list(filtout = filtout),
-        list(filters = NULL),
-        list(returnall = FALSE),
-        Data$arglist
-      ),
-      .rem_args = 'scat_scale',
-      .return = 'func',
-      .check = FALSE
-    )
-
-    if(is.null(filtout)){
-      if(is.null(Data$filtout) | isTRUE(Data$mode == 'spec') | isTRUE(Data$mode == 'both')){
-        #this means we are in spec-z mode
-        if(isTRUE(Data$mode == 'both')){
-          Phot_out = photom_flux(Photom[,'wave'], convert_freq2wave(Photom[,'flux'], Photom[,'wave'])*.jansky_to_cgs,
-                                 outtype = 'Jansky', filters = Data$filtout)
-        }
-
-        if(!isTRUE(all.equal(Photom[,'wave'], Data$spec[,'wave']))){ #if not already on the same grid we rebin
-          Spec_out = specReBin(wave = Photom[,'wave'],
-                            flux = Photom[,'flux'],
-                            wavegrid = Data$spec[,'wave'],
-                            logbin = ifelse(is.null(Data$logbin), TRUE, Data$logbin),
-                            rough = ifelse(is.null(Data$rough), TRUE, Data$rough)
-                            )[,'flux']
-        }else{
-          Spec_out = Photom[,'flux']
-        }
-      }
-    }else{
-      Phot_out = Photom
-    }
-  }
-
-  if(!is.null(filtout)){
-    #just in normal photometry mode
-    cutsig = (Data$flux[,'flux'] - Phot_out) / Data$flux[,'fluxerr']
-  }else{
-    cutsig = (Data$spec[,'flux'] - Spec_out) / Data$spec[,'fluxerr']
-
-    if(isTRUE(Data$mode == 'both')){ #special case
-      cutsig = c(cutsig, (Data$photom[,'flux'] - Phot_out) / Data$photom[,'fluxerr'])
-    }
-  }
-
-  if (Data$like == 'norm') {
-    LL = sum(dnorm(x = cutsig, mean=0, sd=scat_scale, log = TRUE), na.rm = TRUE)
-  } else if (Data$like == 'chisq') {
-    LL = dchisq(sum(cutsig ^ 2),
-                df = length(Data$filtout) - length(parm),
-                log = TRUE)
-  } else if (Data$like == 'st') {
-    vardata = var(cutsig, na.rm = TRUE)
-    dof = 2 * vardata / (vardata - 1)
-    #dof=interval(dof,0,Inf)
-    dof = max(1, min(Inf, dof, na.rm = TRUE), na.rm = TRUE)
-    LL = as.numeric(sum(dt(
-      cutsig, df = dof, log = TRUE
-    ), na.rm = TRUE))
-  } else{
-    stop('Bad like option!')
-  }
-
-  if (is.null(Data$prior)) {
-    LP = LL
-  } else{
-    LP = LL + as.numeric(Data$prior(parm))
-  }
-  if (Data$verbose) {
-    message(LP)
-  }
-
-  if (length(grep('flux', Data$mon.names)) > 0) {
-    names(Phot_out) = Data$flux[,'filter']
-    Monitor = c(Monitor, flux = Phot_out)
-  }
-
-  if (Data$fit == 'ld' | Data$fit == 'la' | Data$fit == 'check') {
-    if ('LP' %in% Data$mon.names) {
-      Monitor = c(Monitor, LP = LP)
-    }
-    if (length(Monitor) == 0) {
-      Monitor = 0L #this needs to be 0L is empty (not NA) Alas cannot return nothing!
-    } else{
-      Monitor = Monitor[match(Data$mon.names, names(Monitor))]
-    }
-  }
-
-  # Various returns:
-
-  if (Data$fit == 'optim' | Data$fit == 'cma') {
-    return(-LP)
-  } else if (Data$fit == 'ld' | Data$fit == 'la') {
-    return(list(
-      LP = LP,
-      Dev = -2 * LL,
-      Monitor = Monitor,
-      yhat = 1,
-      parm = parm
-    ))
-  } else if (Data$fit == 'check') {
-    output = list(
-      LP = LP,
-      Dev = -2 * LL,
-      Monitor = Monitor,
-      yhat = 1,
-      parm = parm,
-      SEDout = SEDout,
-      Data = Data
-    )
-    class(output) = 'ProSpectSEDlike'
-    return(output)
-  } else{
-    return('Bad fit type!')
-  }
-}
