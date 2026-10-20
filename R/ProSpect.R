@@ -539,23 +539,89 @@ ProSpectSED = function(SFH = SFHfunc,
   }
 
   if (returnall) {
-    StarsAtten = data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten)
-    StarsUnAtten = data.frame(wave = Stars$wave, lum = Stars$lum_unatten)
+    # Put every returned SED component on the same wavelength grid as FinalLum.
+    # Components outside their wavelength coverage contribute zero, matching
+    # the extrap = 0 behaviour used when combining SEDs above.
+    component_on_grid = function(component, grid) {
+      if (is.null(component) || nrow(component) == 0) {
+        return(rep(0, length(grid)))
+      }
 
-    if(!isFALSE(Dale)){
-      DustEmit = data.frame(wave = Dust_Screen$Wave, lum = SED_Bdust_Sdust)
-    }else{
-      DustEmit = NULL
+      wave_col = if ("wave" %in% names(component)) "wave" else NULL
+      lum_col = if ("lum" %in% names(component)) {
+        "lum"
+      } else if ("flux" %in% names(component)) {
+        "flux"
+      } else {
+        NULL
+      }
+
+      if (is.null(wave_col) || is.null(lum_col)) {
+        stop("SED components must contain a 'wave' column and a 'lum' or 'flux' column")
+      }
+
+      valid = is.finite(component[[wave_col]]) & is.finite(component[[lum_col]])
+      if (sum(valid) < 2) {
+        return(rep(0, length(grid)))
+      }
+
+      interpolated = approx(
+        x = component[[wave_col]][valid],
+        y = component[[lum_col]][valid],
+        xout = grid,
+        rule = 1,
+        ties = mean
+      )$y
+      interpolated[!is.finite(interpolated)] = 0
+      interpolated
     }
+
+    component_wave = Final$wave
+
+    if (is.null(Stars)) {
+      StarsAtten = data.frame(wave = component_wave, lum = rep(0, length(component_wave)))
+      StarsUnAtten = data.frame(wave = component_wave, lum = rep(0, length(component_wave)))
+    } else {
+      StarsAtten = data.frame(
+        wave = component_wave,
+        lum = component_on_grid(
+          data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten),
+          component_wave
+        )
+      )
+      StarsUnAtten = data.frame(
+        wave = component_wave,
+        lum = component_on_grid(
+          data.frame(wave = Stars$wave, lum = Stars$lum_unatten),
+          component_wave
+        )
+      )
+    }
+
+    if (is.null(AGN)) {
+      AGN_component = rep(0, length(component_wave))
+      AGN_out = NULL
+    } else {
+      AGN_component = component_on_grid(AGN, component_wave)
+      AGN_out = data.frame(wave = component_wave, lum = AGN_component)
+    }
+
+    # The residual includes the dust re-emission and any remaining component
+    # contribution needed to reconstruct the total SED on the common grid.
+    DustEmit = data.frame(
+      wave = component_wave,
+      lum = Final$lum - StarsAtten$lum - AGN_component
+    )
 
     output = list(
       Photom = photom_out,
       FinalFlux = Flux,
       FinalLum = Final,
+      Total = Final,
       StarsAtten = StarsAtten,
       StarsUnAtten = StarsUnAtten,
       DustEmit = DustEmit,
-      AGN = AGN,
+      AGN = AGN_out,
       Stars = Stars,
       dustmass = c(
         birth = dustmass_birth,
