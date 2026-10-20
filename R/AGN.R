@@ -103,5 +103,4 @@ AGN_angle_averaged_SED <- function(model, AGNlum, AGNct, AGNrm, AGNta,
         mean_lum <- mean_lum + weights[i] * spectrum$lum
     }
     data.frame(wave = first$wave, lum = mean_lum)
-}
-
+} 
