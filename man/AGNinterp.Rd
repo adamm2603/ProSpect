@@ -3,6 +3,7 @@
 \alias{Fritz_interp}
 \alias{SKIRTOR_interp}
 \alias{AGN_angle_averaged_SED}
+\alias{ProSpect_component_on_grid}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Interpolate the Fritz (2006) and SKIRTOR (2016) AGN Templates
