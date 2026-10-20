@@ -174,8 +174,16 @@ ProSpectSED = function(SFH = SFHfunc,
       stop('Dale cannot be FALSE when using an AGN model!')
     }
 
+    if (AGN_emission == "angle_averaged" &&
+      !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR")) {
+      stop("Angle-averaged AGN emission requires a Fritz or SKIRTOR model")
+        }
+
     if(inherits(AGN, 'Fritz') |
        inherits(AGN, 'SKIRTOR')) {
+    if (AGN_emission == "angle_averaged") {
+          AGN_model = AGN
+      }
       #Use new model
       if (inherits(AGN, 'Fritz')) {
         AGN = Fritz_interp(
@@ -203,6 +211,28 @@ ProSpectSED = function(SFH = SFHfunc,
 
       dustlum_AGN = NA
       dustmass_AGN = NA
+      if (AGN_emission == "angle_averaged") {
+      selected = AGN
+      mean_SED = AGN_angle_averaged_SED(
+      AGN_model, AGNlum, AGNct, AGNrm, AGNta,
+      AGNal, AGNbe, AGNp, AGNq)
+      direct = CF_screen_atten(
+       wave = selected$wave, flux = selected$lum * .erg_to_lsol,
+       tau = tau_screen, pow = pow_screen,
+       Eb = Eb, L0 = L0, LFWHM = LFWHM)
+       AGN = atten_emit(
+          wave = mean_SED$wave, flux = mean_SED$lum * .erg_to_lsol,
+          tau = tau_screen, pow = pow_screen,
+          alpha_SF = alpha_SF_screen, Dale = Dale,
+          Dale_M2L_func = Dale_M2L_func, waveout = waveout,
+          Eb = Eb, L0 = L0, LFWHM = LFWHM)
+         AGN$final = addspec(
+          wave1 = selected$wave, flux1 = direct$flux,
+          wave2 = AGN$emit$wave, flux2 = AGN$emit$flux,
+          extrap = 0, waveout = waveout)
+            }
+
+      
       if (isFALSE(AGN_gal_screen)) {
 
         # Skip additional host-galaxy screening of the AGN.
