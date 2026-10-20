@@ -104,15 +104,3 @@ AGN_angle_averaged_SED <- function(model, AGNlum, AGNct, AGNrm, AGNta,
     }
     data.frame(wave = first$wave, lum = mean_lum)
 } 
-
-ProSpect_component_on_grid <- function(component, wave) {
-    if (is.null(component)) {
-        return(rep(0, length(wave)))
-    }
-    if (identical(component$wave, wave)) {
-        return(component$lum)
-    }
-    10^approx(log10(component$wave), log10(component$lum),
-              xout = log10(wave), yleft = -Inf, yright = -Inf)$y
-}
-
