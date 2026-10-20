@@ -539,79 +539,114 @@ ProSpectSED = function(SFH = SFHfunc,
   }
 
   if (returnall) {
-    # Put every returned SED component on the same wavelength grid as FinalLum.
-    # Components outside their wavelength coverage contribute zero, matching
-    # the extrap = 0 behaviour used when combining SEDs above.
-    component_on_grid = function (component, grid)
-{
-    if (is.null(component) || nrow(component) == 0) {
-        return(rep(0, length(grid)))
-    }
-    wave_col <- if (“wave” %in% names(component))
-        “wave”
-    else NULL
-    lum_col <- if (“lum” %in% names(component)) {
-        “lum”
-    }
-    else if (“flux” %in% names(component)) {
-        “flux”
-    }
-    else {
-        NULL
-    }
-    if (is.null(wave_col) || is.null(lum_col)) {
-        stop(“SED components must contain a ‘wave’ column and a ‘lum’ or ‘flux’ column”)
-    }
-    valid <- is.finite(component[[wave_col]]) & is.finite(component[[lum_col]]) &
-        component[[wave_col]] > 0 & component[[lum_col]] > 0
-    if (sum(valid) < 2) {
-        return(rep(0, length(grid)))
-    }
-    interpolated <- 10^approx(x = log10(component[[wave_col]][valid]),
-        y = log10(component[[lum_col]][valid]), xout = log10(grid),
-        yleft = -Inf, yright = -Inf, ties = mean)$y
-    interpolated[!is.finite(interpolated)] <- 0
-    interpolated
-}
 
-    component_wave = Final$wave
+    # Interpolate an SED component onto the Final wavelength grid
+    component_on_grid <- function(component, grid) {
 
+      if (is.null(component) || nrow(component) == 0) {
+        return(rep(0, length(grid)))
+      }
+
+      if (!"wave" %in% names(component)) {
+        stop("SED component must contain a 'wave' column")
+      }
+
+      if ("lum" %in% names(component)) {
+        lum_col <- "lum"
+      } else if ("flux" %in% names(component)) {
+        lum_col <- "flux"
+      } else {
+        stop("SED component must contain a 'lum' or 'flux' column")
+      }
+
+      valid <- is.finite(component$wave) &
+        is.finite(component[[lum_col]]) &
+        component$wave > 0 &
+        component[[lum_col]] > 0
+
+      if (sum(valid) < 2) {
+        return(rep(0, length(grid)))
+      }
+
+      interpolated <- 10^approx(
+        x = log10(component$wave[valid]),
+        y = log10(component[[lum_col]][valid]),
+        xout = log10(grid),
+        yleft = -Inf,
+        yright = -Inf,
+        ties = mean
+      )$y
+
+      interpolated[!is.finite(interpolated)] <- 0
+      interpolated
+    }
+
+    component_wave <- Final$wave
+
+    # Attenuated and unattenuated stellar components
     if (is.null(Stars)) {
-      StarsAtten = data.frame(wave = component_wave, lum = rep(0, length(component_wave)))
-      StarsUnAtten = data.frame(wave = component_wave, lum = rep(0, length(component_wave)))
+
+      StarsAtten <- data.frame(
+        wave = component_wave,
+        lum = rep(0, length(component_wave))
+      )
+
+      StarsUnAtten <- data.frame(
+        wave = component_wave,
+        lum = rep(0, length(component_wave))
+      )
+
     } else {
-      StarsAtten = data.frame(
+
+      StarsAtten <- data.frame(
         wave = component_wave,
         lum = component_on_grid(
-          data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten),
+          data.frame(
+            wave = Stars$wave_lum,
+            lum = Stars$lum_atten
+          ),
           component_wave
         )
       )
-      StarsUnAtten = data.frame(
+
+      StarsUnAtten <- data.frame(
         wave = component_wave,
         lum = component_on_grid(
-          data.frame(wave = Stars$wave, lum = Stars$lum_unatten),
+          data.frame(
+            wave = Stars$wave,
+            lum = Stars$lum_unatten
+          ),
           component_wave
         )
       )
     }
 
+    # AGN component on the common wavelength grid
     if (is.null(AGN)) {
-      AGN_component = rep(0, length(component_wave))
-      AGN_out = NULL
+
+      AGN_component <- rep(0, length(component_wave))
+      AGN_out <- NULL
+
     } else {
-      AGN_component = component_on_grid(AGN, component_wave)
-      AGN_out = data.frame(wave = component_wave, lum = AGN_component)
+
+      AGN_component <- component_on_grid(
+        AGN,
+        component_wave
+      )
+
+      AGN_out <- data.frame(
+        wave = component_wave,
+        lum = AGN_component
+      )
     }
 
-    # The residual includes the dust re-emission and any remaining component
-    # contribution needed to reconstruct the total SED on the common grid.
-    DustEmit = data.frame(
+    # Residual component required to reconstruct the total SED
+    DustEmit <- data.frame(
       wave = component_wave,
       lum = Final$lum - StarsAtten$lum - AGN_component
     )
 
-    output = list(
+    output <- list(
       Photom = photom_out,
       FinalFlux = Flux,
       FinalLum = Final,
@@ -625,32 +660,39 @@ ProSpectSED = function(SFH = SFHfunc,
         birth = dustmass_birth,
         screen = dustmass_screen,
         AGN = dustmass_AGN,
-        total = sum(c(
-          dustmass_birth, dustmass_screen, dustmass_AGN
-        ), na.rm = TRUE)
+        total = sum(
+          c(dustmass_birth, dustmass_screen, dustmass_AGN),
+          na.rm = TRUE
+        )
       ),
       dustlum = c(
         birth = dustlum_birth,
         screen = dustlum_screen,
         AGN = dustlum_AGN,
-        total = sum(c(
-          dustlum_birth, dustlum_screen, dustlum_AGN
-        ), na.rm = TRUE)
+        total = sum(
+          c(dustlum_birth, dustlum_screen, dustlum_AGN),
+          na.rm = TRUE
+        )
       ),
-      #call = call,
       z = z,
       filters = filters,
       filtout = filtout,
-      cosmo = list(H0=H0, OmegaM=OmegaM, OmegaL=OmegaL)
+      cosmo = list(
+        H0 = H0,
+        OmegaM = OmegaM,
+        OmegaL = OmegaL
+      )
     )
-    class(output) = 'ProSpectSED'
+
+    class(output) <- "ProSpectSED"
     return(output)
-  } else{
+
+  } else {
+
     return(photom_out)
+
   }
 }
-
-
 ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
   if (is.null(Data$fit)) {
     Data$fit = 'optim'
