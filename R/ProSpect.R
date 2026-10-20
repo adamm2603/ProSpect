@@ -542,39 +542,37 @@ ProSpectSED = function(SFH = SFHfunc,
     # Put every returned SED component on the same wavelength grid as FinalLum.
     # Components outside their wavelength coverage contribute zero, matching
     # the extrap = 0 behaviour used when combining SEDs above.
-    component_on_grid = function(component, grid) {
-      if (is.null(component) || nrow(component) == 0) {
-        return(rep(0, length(grid)))
-      }
-
-      wave_col = if ("wave" %in% names(component)) "wave" else NULL
-      lum_col = if ("lum" %in% names(component)) {
-        "lum"
-      } else if ("flux" %in% names(component)) {
-        "flux"
-      } else {
-        NULL
-      }
-
-      if (is.null(wave_col) || is.null(lum_col)) {
-        stop("SED components must contain a 'wave' column and a 'lum' or 'flux' column")
-      }
-
-      valid = is.finite(component[[wave_col]]) & is.finite(component[[lum_col]])
-      if (sum(valid) < 2) {
-        return(rep(0, length(grid)))
-      }
-
-      interpolated = approx(
-        x = component[[wave_col]][valid],
-        y = component[[lum_col]][valid],
-        xout = grid,
-        rule = 1,
-        ties = mean
-      )$y
-      interpolated[!is.finite(interpolated)] = 0
-      interpolated
-    }
+    component_on_grid = function (component, grid)
+{
+    if (is.null(component) || nrow(component) == 0) {
+        return(rep(0, length(grid)))
+    }
+    wave_col <- if (“wave” %in% names(component))
+        “wave”
+    else NULL
+    lum_col <- if (“lum” %in% names(component)) {
+        “lum”
+    }
+    else if (“flux” %in% names(component)) {
+        “flux”
+    }
+    else {
+        NULL
+    }
+    if (is.null(wave_col) || is.null(lum_col)) {
+        stop(“SED components must contain a ‘wave’ column and a ‘lum’ or ‘flux’ column”)
+    }
+    valid <- is.finite(component[[wave_col]]) & is.finite(component[[lum_col]]) &
+        component[[wave_col]] > 0 & component[[lum_col]] > 0
+    if (sum(valid) < 2) {
+        return(rep(0, length(grid)))
+    }
+    interpolated <- 10^approx(x = log10(component[[wave_col]][valid]),
+        y = log10(component[[lum_col]][valid]), xout = log10(grid),
+        yleft = -Inf, yright = -Inf, ties = mean)$y
+    interpolated[!is.finite(interpolated)] <- 0
+    interpolated
+}
 
     component_wave = Final$wave
 
