@@ -62,10 +62,10 @@ Numeric scalar; alpha slope of the AGN torus dust. Lower values mean hotter dust
 Numeric scalar; AGN bolometric luminosity in erg/s for both the Fritz and SKIRTOR.
 }
   \item{AGN_gal_screen }{
-Logical scalar; "viewing_angle", "angle_averaged". 
+Logical scalar; Turns off ISM screening of AGN flux. 
 }
   \item{AGN_emission}{
-Character vector; Either "viewing_angle", "angle_averaged". 
+Character vector; Either viewing_angle, angle_averaged. 
 }
   \item{sparse}{
 Numeric scalar; amount of sparse sampling of the spectra to make.
