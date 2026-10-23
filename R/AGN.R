@@ -116,4 +116,3 @@ ProSpect_component_on_grid <- function(component, wave) {
     10^approx(log10(component$wave), log10(component$lum),
               xout = log10(wave), yleft = -Inf, yright = -Inf)$y
 }
-
