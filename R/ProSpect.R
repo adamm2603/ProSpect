@@ -1,59 +1,24 @@
-ProSpectSED = function(SFH = SFHfunc,
-                          z = 0.1,
-                          tau_birth = 1,
-                          tau_screen = 0.3,
-                          tau_AGN = 1,
-                          pow_birth = -0.7,
-                          pow_screen = -0.7,
-                          pow_AGN = -0.7,
-                          alpha_SF_birth = 1,
-                          alpha_SF_screen = 3,
-                          alpha_SF_AGN = 0,
-                          AGNlum = 0,
-                          sparse = 5,
-                          speclib = NULL,
-                          Dale = NULL,
-                          AGN = NULL,
-                          filtout = NULL,
-                          filters = 'all',
-                          Dale_M2L_func = NULL,
-                          returnall = TRUE,
-                          H0 = 67.8,
-                          OmegaM = 0.308,
-                          OmegaL = 1 - OmegaM,
-                          waveout = seq(2, 9.35, by = 0.01),
-                          ref,
-                          unimax = 13.8e9,
-                          agemax = NULL,
-                          LumDist_Mpc = NULL,
-                          addradio_SF = FALSE,
-                          addradio_AGN = FALSE,
-                          Te_SF = 1e4,
-                          ff_frac_SF = 0.1,
-                          ff_power_SF = -0.1,
-                          sy_power_SF = -0.8,
-                          Te_AGN = 1e4,
-                          ff_frac_AGN = 0.1,
-                          ff_power_AGN = -0.1,
-                          sy_power_AGN = -0.8,
-                          AGNct = 40,
-                          AGNrm = 60,
-                          AGNan = 30,
-                          AGNta = 1,
-                          AGNal = 4,
-                          AGNbe = -0.5,
-                          AGNp = 1,
-                          AGNq = 1,
-                          Eb = 0,
-                          L0 = 2175.8,
-                          LFWHM = 470,
-                          IGMabsorb = 0,
-                          Inoue14_LAFcoef = NULL,
-                          Inoue14_DLAcoef = NULL,
-                          AGN_gal_screen = TRUE,
-                          AGN_emission = c("viewing_angle", "angle_averaged"),
-                          ...) {
 
+
+ProSpectSED <-
+function (SFH = SFHfunc, z = 0.10000000000000001, tau_birth = 1, 
+    tau_screen = 0.29999999999999999, tau_AGN = 1, pow_birth = -0.69999999999999996, 
+    pow_screen = -0.69999999999999996, pow_AGN = -0.69999999999999996, 
+    alpha_SF_birth = 1, alpha_SF_screen = 3, alpha_SF_AGN = 0, 
+    AGNlum = 0, sparse = 5, speclib = NULL, Dale = NULL, AGN = NULL,
+    filtout = NULL, filters = "all", Dale_M2L_func = NULL, returnall = TRUE, 
+    H0 = 67.799999999999997, OmegaM = 0.308, OmegaL = 1 - OmegaM, 
+    waveout = seq(2, 9.3499999999999996, by = 0.01), ref, unimax = 13800000000, 
+    agemax = NULL, LumDist_Mpc = NULL, addradio_SF = FALSE, addradio_AGN = FALSE, 
+    Te_SF = 10000, ff_frac_SF = 0.10000000000000001, ff_power_SF = -0.10000000000000001, 
+    sy_power_SF = -0.80000000000000004, Te_AGN = 10000, ff_frac_AGN = 0.10000000000000001, 
+    ff_power_AGN = -0.10000000000000001, sy_power_AGN = -0.80000000000000004, 
+    AGNct = 40, AGNrm = 60, AGNan = 30, AGNta = 1, AGNal = 4, 
+    AGNbe = -0.5, AGNp = 1, AGNq = 1, Eb = 0, L0 = 2175.8000000000002, 
+    LFWHM = 470, IGMabsorb = 0, Inoue14_LAFcoef = NULL, Inoue14_DLAcoef = NULL,
+    AGN_emission = c("viewing_angle", "angle_averaged"),
+    ...) 
+{
     AGN_emission = match.arg(AGN_emission)
     if (!is.null(waveout)) {
         waveout_max = max(waveout)
@@ -373,6 +338,7 @@ ProSpectSED = function(SFH = SFHfunc,
         return(photom_out)
     }
 }
+
 
 ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
   if (is.null(Data$fit)) {
