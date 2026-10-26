@@ -374,7 +374,37 @@ ProSpectSED = function(SFH = SFHfunc,
     }
 }
 
+# Full ProSpectSEDlike function from the supplied source, with AGN_emission forwarding fixed.
 ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
+
+  if (is.null(Data$arglist)) {
+    Data$arglist <- list()
+  }
+
+  if (!is.null(Data$AGN_emission)) {
+    Data$arglist$AGN_emission <- Data$AGN_emission
+  }
+
+  if (is.null(Data$arglist$AGN_emission)) {
+    Data$arglist$AGN_emission <- "viewing_angle"
+  }
+
+  if (!is.character(Data$arglist$AGN_emission) ||
+      length(Data$arglist$AGN_emission) != 1L ||
+      is.na(Data$arglist$AGN_emission) ||
+      !Data$arglist$AGN_emission %in% c("viewing_angle", "angle_averaged")) {
+    stop(
+      "Data$AGN_emission must be either 'viewing_angle' or 'angle_averaged'.",
+      call. = FALSE
+    )
+  }
+
+  # Keep the selected value visible at the top level as well.
+  Data$AGN_emission <- Data$arglist$AGN_emission
+
+  if (isTRUE(Data$verbose)) {
+    message("ProSpectSED AGN_emission = '", Data$arglist$AGN_emission, "'")
+  }
   if (is.null(Data$fit)) {
     Data$fit = 'optim'
   }
@@ -742,3 +772,4 @@ ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
     return('Bad fit type!')
   }
 }
+
