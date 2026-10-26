@@ -92,7 +92,7 @@ radiocont = function(wave, flux, z=0, Te=1e4, ff_frac=0.1, ff_power=-0.1, sy_pow
   #Coerced rather than compared against the assignable F symbol; this also keeps numeric 0/1 working
   if(!isTRUE(as.logical(subtractonly))){
     ## adding new radio in
-    radio_add = .radioemission_lam(wave=wavesamp, FIR=FIR, Te=Te, ff_frac=ff_frac, ff_power=ff_power, sy_power=sy_power, ff_frac_cal=ff_frac)[,'tot_flux']
+    radio_add = .radioemission_lam(wave=wavesamp, FIR=FIR, Te=Te, ff_frac=ff_frac, ff_power=ff_power, sy_power=sy_power, ff_frac_cal=0.1)[,'tot_flux']
     #lines(wavesamp, radio_add, col='red',lwd=1)
     output = addspec(wave, flux,
                      wavesamp, radio_add,
