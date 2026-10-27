@@ -18,7 +18,7 @@ Fritz_interp(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, al = 4, be = -0.5,
 SKIRTOR_interp(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, p = 1, q = 1,
   SKIRTOR = NULL)
 
-AGN_angle_averaged_SED(model, AGNlum, AGNct, AGNrm, AGNta, AGNal, AGNbe, AGNp, AGNq)
+AGN_angle_averaged_SED(model=c(SKIRTOR,Fritz), AGNlum=lum, AGNct=ct, AGNrm=rm, AGNta=ta, AGNal=al, AGNbe=be, AGNp=p, AGNq=q)
 
 }
 \arguments{
