@@ -79,41 +79,42 @@ ProSpect_component_on_grid <- function(component, wave) {
               xout = log10(wave), yleft = -Inf, yright = -Inf)$y
 }
 
+
 AGN_angle_averaged_SED = function (model, AGNlum, AGNct, AGNrm, AGNta,
-                                                                   AGNal, AGNbe, AGNp, AGNq) {
-    angles = model$an
-    if (length(angles) != 10 || anyNA(angles) || any(angles !=
-        seq(0, 90, by = 10))) {
-        stop(“AGN viewing angles must be 0, 10, ..., 90 degrees”)
-    }
-    if (!inherits(model, “Fritz”) && !inherits(model, “SKIRTOR”)) {
-        stop(“AGN model must be Fritz or SKIRTOR”)
-    }
-    weights = c(0.0868240888334652, 0.171010071662834, 0.163175911166535,
-        0.150383733180435, 0.133022221559489, 0.11161889704895,
-        0.0868240888334652, 0.0593911746138847, 0.0301536896070458,
-        0.00759612349389599)
-    for (i in 1:10) {
-        if (inherits(model, “Fritz”)) {
-            spectrum = Fritz_interp(lum = AGNlum, ct = AGNct,
-                al = AGNal, be = AGNbe, ta = AGNta, rm = AGNrm,
-                an = angles[i], Fritz = model)
-        }
-        else {
-            spectrum = SKIRTOR_interp(lum = AGNlum, ct = AGNct,
-                ta = AGNta, p = AGNp, q = AGNq, rm = AGNrm, an = angles[i],
-                SKIRTOR = model)
-        }
-        if (i == 1) {
-            wave = spectrum$wave
-            mean_lum = weights[i] * spectrum$lum
-        }
-        else {
-            if (!identical(spectrum$wave, wave)) {
-                stop(“AGN viewing angles must share a wavelength grid”)
-            }
-            mean_lum = mean_lum + weights[i] * spectrum$lum
-        }
-    }
-    return(data.frame(wave = wave, lum = mean_lum))
+                                   AGNal, AGNbe, AGNp, AGNq) {
+    angles = model$an
+    if (length(angles) != 10 || anyNA(angles) || any(angles !=
+        seq(0, 90, by = 10))) {
+        stop("AGN viewing angles must be 0, 10, ..., 90 degrees")
+    }
+    if (!inherits(model, "Fritz") && !inherits(model, "SKIRTOR")) {
+        stop("AGN model must be Fritz or SKIRTOR")
+    }
+    weights = c(0.0868240888334652, 0.171010071662834, 0.163175911166535,
+        0.150383733180435, 0.133022221559489, 0.11161889704895,
+        0.0868240888334652, 0.0593911746138847, 0.0301536896070458,
+        0.00759612349389599)
+    for (i in 1:10) {
+        if (inherits(model, "Fritz")) {
+            spectrum = Fritz_interp(lum = AGNlum, ct = AGNct,
+                al = AGNal, be = AGNbe, ta = AGNta, rm = AGNrm,
+                an = angles[i], Fritz = model)
+        }
+        else {
+            spectrum = SKIRTOR_interp(lum = AGNlum, ct = AGNct,
+                ta = AGNta, p = AGNp, q = AGNq, rm = AGNrm, an = angles[i],
+                SKIRTOR = model)
+        }
+        if (i == 1) {
+            wave = spectrum$wave
+            mean_lum = weights[i] * spectrum$lum
+        }
+        else {
+            if (!identical(spectrum$wave, wave)) {
+                stop("AGN viewing angles must share a wavelength grid")
+            }
+            mean_lum = mean_lum + weights[i] * spectrum$lum
+        }
+    }
+    return(data.frame(wave = wave, lum = mean_lum))
 }
