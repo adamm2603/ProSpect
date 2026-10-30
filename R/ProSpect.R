@@ -50,456 +50,361 @@ ProSpectSED = function(SFH = SFHfunc,
                           IGMabsorb = 0,
                           Inoue14_LAFcoef = NULL,
                           Inoue14_DLAcoef = NULL,
+                          AGN_gal_screen = TRUE,
+                          AGN_emission = c("viewing_angle", "angle_averaged"),
                           ...) {
-  #call = match.call()
 
-  if(!is.null(waveout)){
-    waveout_max = max(waveout)
-  }else{
-    waveout_max = 9.35
-  }
-
-  if ('emission' %in% names(list(...))) {
-    if (list(...)$emission & missing(waveout)) {
-      waveout = NULL
+    AGN_emission = match.arg(AGN_emission)
+    if (!is.null(waveout)) {
+        waveout_max = max(waveout)
     }
-  }
-
-  if(!is.null(SFH)){
-    tau_birth = .interval(tau_birth, 0, 10, reflect = FALSE)
-    tau_screen = .interval(tau_screen, 0, 10, reflect = FALSE)
-    pow_birth = .interval(pow_birth, -2, 0, reflect = FALSE)
-    pow_screen = .interval(pow_screen, -2, 0, reflect = FALSE)
-    alpha_SF_birth = .interval(alpha_SF_birth, 0.0625, 4, reflect = FALSE)
-    alpha_SF_screen = .interval(alpha_SF_screen, 0.0625, 4, reflect = FALSE)
-  }
-
-  if(!is.null(AGN)){
-    tau_AGN = .interval(tau_AGN, 0, 10, reflect = FALSE)
-    pow_AGN = .interval(pow_AGN, -2, 0, reflect = FALSE)
-    alpha_SF_AGN = .interval(alpha_SF_AGN, 0.0625, 4, reflect = FALSE)
-  }
-
-  if(!is.null(SFH)){
-
-    Stars = SFH(
-      z = z,
-      tau_birth = tau_birth,
-      tau_screen = tau_screen,
-      pow_birth = pow_birth,
-      pow_screen = pow_screen,
-      sparse = sparse,
-      speclib = speclib,
-      filters = NULL,
-      unimax = unimax,
-      agemax = agemax,
-      Eb = Eb,
-      L0 = L0,
-      LFWHM = LFWHM,
-      ...
-    )
-
-    if(!isFALSE(Dale)){
-      Dust_Birth = Dale_interp(alpha_SF = alpha_SF_birth, Dale = Dale)
-      Dust_Screen = Dale_interp(alpha_SF = alpha_SF_screen, Dale = Dale)
-
-      SED_Bdust_Sdust = Dust_Birth$Aspec * Stars$lumtot_birth + Dust_Screen$Aspec *
-        Stars$lumtot_screen
-      SED_Stars_Bdust_Sdust = addspec(
-        wave1 = Stars$wave_lum,
-        flux1 = Stars$lum_atten,
-        wave2 = Dust_Screen$Wave,
-        flux2 = SED_Bdust_Sdust,
-        extrap = 0,
-        waveout = waveout
-      )
-    }else{
-      Final = data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten)
-      Dust_Birth = NULL
-      Dust_Screen = NULL
-      SED_Bdust_Sdust = NULL
-      SED_Stars_Bdust_Sdust = NULL
+    else {
+        waveout_max = 9.3499999999999996
     }
-
-    if (!is.null(Dale_M2L_func) & returnall) {
-      dustlum_birth = Stars$lumtot_birth
-      dustlum_screen = Stars$lumtot_screen
-      dustmass_birth = Stars$lumtot_birth / Dale_M2L_func(alpha_SF_birth)
-      dustmass_screen = Stars$lumtot_screen / Dale_M2L_func(alpha_SF_screen)
-    } else{
-      dustlum_birth = 0
-      dustlum_screen = 0
-      dustmass_birth = 0
-      dustmass_screen = 0
+    if ("emission" %in% names(list(...))) {
+        if (list(...)$emission & missing(waveout)) {
+            waveout = NULL
+        }
     }
-
-    ## adding radio contribution using just FIR generated from star-formation
-    if (addradio_SF) {
-      Final = radiocont(
-        wave = SED_Stars_Bdust_Sdust$wave,
-        flux = SED_Stars_Bdust_Sdust$flux,
-        z = 0,
-        Te = Te_SF,
-        ff_frac = ff_frac_SF,
-        ff_power = ff_power_SF,
-        sy_power = sy_power_SF,
-        wavesamp = seq(6, waveout_max, by=0.1),
-        flux_in = 'wave',
-        flux_out = 'wave'
-      )
-    }else if(!isFALSE(Dale)) {
-      Final = SED_Stars_Bdust_Sdust
+    if (!is.null(SFH)) {
+        tau_birth = .interval(tau_birth, 0, 10, reflect = FALSE)
+        tau_screen = .interval(tau_screen, 0, 10, reflect = FALSE)
+        pow_birth = .interval(pow_birth, -2, 0, reflect = FALSE)
+        pow_screen = .interval(pow_screen, -2, 0, reflect = FALSE)
+        alpha_SF_birth = .interval(alpha_SF_birth, 0.0625, 4, 
+            reflect = FALSE)
+        alpha_SF_screen = .interval(alpha_SF_screen, 0.0625, 
+            4, reflect = FALSE)
     }
-  } else {
-    Dust_Birth = NULL
-    Dust_Screen = NULL
-    SED_Bdust_Sdust = NULL
-    SED_Stars_Bdust_Sdust = NULL
-    dustlum_birth = NULL
-    dustlum_screen = NULL
-    dustmass_birth = NULL
-    dustmass_screen = NULL
-    Stars = NULL
-    Final = NULL
-  }
-
-  if (is.null(AGN) | AGNlum == 0) {
-    #Final = Final
-    AGN = NULL
-    dustlum_AGN = 0
-    dustmass_AGN = 0
-  } else {
-    if(isFALSE(Dale)){
-      stop('Dale cannot be FALSE when using an AGN model!')
+    if (!is.null(AGN)) {
+        tau_AGN = .interval(tau_AGN, 0, 10, reflect = FALSE)
+        pow_AGN = .interval(pow_AGN, -2, 0, reflect = FALSE)
+        alpha_SF_AGN = .interval(alpha_SF_AGN, 0.0625, 4, reflect = FALSE)
     }
-
-    if(inherits(AGN, 'Fritz') |
-       inherits(AGN, 'SKIRTOR')) {
-      #Use new model
-      if (inherits(AGN, 'Fritz')) {
-        AGN = Fritz_interp(
-          lum = AGNlum,
-          ct = AGNct,
-          al = AGNal,
-          be = AGNbe,
-          ta = AGNta,
-          rm = AGNrm,
-          an = AGNan,
-          Fritz = AGN
-        )
-      } else if (inherits(AGN, 'SKIRTOR')) {
-        AGN = SKIRTOR_interp(
-          lum = AGNlum,
-          ta = AGNta,
-          p = AGNp,
-          q = AGNq,
-          ct = AGNct,
-          rm = AGNrm,
-          an = AGNan,
-          SKIRTOR = AGN
-        )
-      }
-
-      dustlum_AGN = NA
-      dustmass_AGN = NA
-      #Second we re-attenuate the above by the screen (since it still has to pass out of the galaxy)
-      AGN = atten_emit(
-        wave = AGN$wave,
-        flux = AGN$lum * .erg_to_lsol,
-        tau = tau_screen,
-        pow = pow_screen,
-        alpha_SF = alpha_SF_screen,
-        Dale = Dale,
-        Dale_M2L_func = Dale_M2L_func,
-        waveout = waveout,
-        Eb = Eb,
-        L0 = L0,
-        LFWHM = LFWHM
-      )
-      if (!is.null(Dale_M2L_func) & returnall) {
-        dustlum_screen = dustlum_screen + AGN$total_atten
-        dustmass_screen = dustmass_screen + AGN$dustmass
-      }
-
-      ## subtracts off AGN contribution to the radio continuum unless you specifically request to add it back
-      AGN$final = radiocont(
-        wave = AGN$final$wave,
-        flux = AGN$final$flux,
-        z = 0,
-        Te = Te_AGN,
-        ff_frac = ff_frac_AGN,
-        ff_power = ff_power_AGN,
-        sy_power = sy_power_AGN,
-        wavesamp = seq(6, waveout_max, by = 0.1),
-        flux_in = 'wave',
-        flux_out = 'wave',
-        subtractonly = !addradio_AGN # whether to add AGN radio or just subtract Dale radio
-      )
-
-      AGN = AGN$final
-      if (is.null(Final)) {
-        Final = AGN
-      } else if (length(Final$flux) == length(AGN$flux)) {
-        Final = data.frame(wave = Final$wave, flux = Final$flux +
-                             AGN$flux)
-      } else {
-        Final = addspec(
-          wave1 = Final$wave,
-          flux1 = Final$flux,
-          wave2 = AGN$wave,
-          flux2 = AGN$flux
-        )
-      }
-      colnames(AGN)[2] = 'lum'
-    } else {
-      #Use old model
-      #First we attenuate by the hot torus
-      AGN = atten_emit(
-        wave = AGN$Wave,
-        flux = AGN$Aspec * AGNlum * .erg_to_lsol,
-        tau = tau_AGN,
-        pow = pow_AGN,
-        alpha_SF = alpha_SF_AGN,
-        Dale = Dale,
-        Dale_M2L_func = Dale_M2L_func,
-        waveout = waveout
-      ) #no bump for the hot torus part
-
-      if (!is.null(Dale_M2L_func) & returnall) {
-        dustlum_AGN = AGN$total_atten
-        dustmass_AGN = AGN$dustmass
-      }
-      #Second we re-attenuate the above by the screen (since it still has to pass out of the galaxy)
-      AGN = atten_emit(
-        wave = AGN$final$wave,
-        flux = AGN$final$flux,
-        tau = tau_screen,
-        pow = pow_screen,
-        alpha_SF = alpha_SF_screen,
-        Dale = Dale,
-        Dale_M2L_func = Dale_M2L_func,
-        waveout = waveout,
-        Eb = Eb,
-        L0 = L0,
-        LFWHM = LFWHM
-      )
-
-      if (!is.null(Dale_M2L_func) & returnall) {
-        dustlum_screen = dustlum_screen + AGN$total_atten
-        dustmass_screen = dustmass_screen + AGN$dustmass
-      } else{
+    if (!is.null(SFH)) {
+        Stars = SFH(z = z, tau_birth = tau_birth, tau_screen = tau_screen, 
+            pow_birth = pow_birth, pow_screen = pow_screen, sparse = sparse, 
+            speclib = speclib, filters = NULL, unimax = unimax, 
+            agemax = agemax, Eb = Eb, L0 = L0, LFWHM = LFWHM, 
+            ...)
+        if (!isFALSE(Dale)) {
+            Dust_Birth = Dale_interp(alpha_SF = alpha_SF_birth, 
+                Dale = Dale)
+            Dust_Screen = Dale_interp(alpha_SF = alpha_SF_screen, 
+                Dale = Dale)
+            SED_Bdust_Sdust = Dust_Birth$Aspec * Stars$lumtot_birth + 
+                Dust_Screen$Aspec * Stars$lumtot_screen
+            SED_Stars_Bdust_Sdust = addspec(wave1 = Stars$wave_lum, 
+                flux1 = Stars$lum_atten, wave2 = Dust_Screen$Wave, 
+                flux2 = SED_Bdust_Sdust, extrap = 0, waveout = waveout)
+        }
+        else {
+            Final = data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten)
+            Dust_Birth = NULL
+            Dust_Screen = NULL
+            SED_Bdust_Sdust = NULL
+            SED_Stars_Bdust_Sdust = NULL
+        }
+        if (!is.null(Dale_M2L_func) & returnall) {
+            dustlum_birth = Stars$lumtot_birth
+            dustlum_screen = Stars$lumtot_screen
+            dustmass_birth = Stars$lumtot_birth/Dale_M2L_func(alpha_SF_birth)
+            dustmass_screen = Stars$lumtot_screen/Dale_M2L_func(alpha_SF_screen)
+        }
+        else {
+            dustlum_birth = 0
+            dustlum_screen = 0
+            dustmass_birth = 0
+            dustmass_screen = 0
+        }
+        if (addradio_SF) {
+            Final = radiocont(wave = SED_Stars_Bdust_Sdust$wave, 
+                flux = SED_Stars_Bdust_Sdust$flux, z = 0, Te = Te_SF, 
+                ff_frac = ff_frac_SF, ff_power = ff_power_SF, 
+                sy_power = sy_power_SF, wavesamp = seq(6, waveout_max, 
+                  by = 0.10000000000000001), flux_in = "wave", 
+                flux_out = "wave")
+        }
+        else if (!isFALSE(Dale)) {
+            Final = SED_Stars_Bdust_Sdust
+        }
+    }
+    else {
+        Dust_Birth = NULL
+        Dust_Screen = NULL
+        SED_Bdust_Sdust = NULL
+        SED_Stars_Bdust_Sdust = NULL
+        dustlum_birth = NULL
+        dustlum_screen = NULL
+        dustmass_birth = NULL
+        dustmass_screen = NULL
+        Stars = NULL
+        Final = NULL
+    }
+    if (is.null(AGN) | AGNlum == 0) {
+        AGN = NULL
         dustlum_AGN = 0
         dustmass_AGN = 0
-      }
-
-      ## subtracts off AGN contribution to the radio continuum unless you specifically request to add it back
-      AGN$final = radiocont(
-        wave = AGN$final$wave,
-        flux = AGN$final$flux,
-        z = 0,
-        Te = Te_AGN,
-        ff_frac = ff_frac_AGN,
-        ff_power = ff_power_AGN,
-        sy_power = sy_power_AGN,
-        wavesamp = seq(6, waveout_max, by = 0.1),
-        flux_in = 'wave',
-        flux_out = 'wave',
-        subtractonly = !addradio_AGN # whether to add AGN radio or just subtract Dale radio
-      )
-
-      AGN = AGN$final
-      if (is.null(Final)) {
-        Final = AGN
-      } else if (length(Final$flux) == length(AGN$flux)) {
-        Final = data.frame(wave = Final$wave, flux = Final$flux +
-                             AGN$flux)
-      } else {
-        Final = addspec(
-          wave1 = Final$wave,
-          flux1 = Final$flux,
-          wave2 = AGN$wave,
-          flux2 = AGN$flux
-        )
-      }
-      colnames(AGN)[2] = 'lum'
     }
-  }
-  colnames(Final)[2] = 'lum'
-
-  ## Previous ProSpect had IGM absorb done on the rest frame
-  ## Now do to the observer frame later on
-  # if (IGMabsorb > 0) {
-  #   sel = which(Final$wave < 1215.67)
-  #   Final$lum[sel] = Final$lum[sel] * (1 - IGMabsorb)
-  #   sel = which(Final$wave < 911.75)
-  #   Final$lum[sel] = 0
-  # }
-
-  if (is.null(filtout) & !is.null(filters)) {
-    if (filters[1] == 'all') {
-      cenwave = NULL
-      data('cenwave', envir = environment())
-      filters = cenwave$filter
-    }else if(filters[1] == 'GAMA'){
-      filters = c(
-        'FUV_GALEX',
-        'NUV_GALEX',
-        'u_VST',
-        'g_VST',
-        'r_VST',
-        'i_VST',
-        'Z_VISTA',
-        'Y_VISTA',
-        'J_VISTA',
-        'H_VISTA',
-        'K_VISTA',
-        'W1_WISE' ,
-        'W2_WISE',
-        'W3_WISE',
-        'W4_WISE',
-        'P100_Herschel',
-        'P160_Herschel',
-        'S250_Herschel' ,
-        'S350_Herschel',
-        'S500_Herschel'
-      )
-    }else if(filters[1] == 'WAVES'){
-      filters = c(
-        'u_VST',
-        'g_VST',
-        'r_VST',
-        'i_VST',
-        'Z_VISTA',
-        'Y_VISTA',
-        'J_VISTA',
-        'H_VISTA',
-        'K_VISTA',
-        'W1_WISE' ,
-        'W2_WISE'
-      )
+    else {
+        if (isFALSE(Dale)) {
+            stop("Dale cannot be FALSE when using an AGN model!")
+        }
+        if (AGN_emission == "angle_averaged" &&
+            !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR")) {
+            stop("Angle-averaged AGN emission requires a Fritz or SKIRTOR model")
+        }
+        if (inherits(AGN, "Fritz") | inherits(AGN, "SKIRTOR")) {
+            if (AGN_emission == "angle_averaged") {
+                AGN_model = AGN
+            }
+            if (inherits(AGN, "Fritz")) {
+                AGN = Fritz_interp(lum = AGNlum, ct = AGNct, 
+                  al = AGNal, be = AGNbe, ta = AGNta, rm = AGNrm, 
+                  an = AGNan, Fritz = AGN)
+            }
+            else if (inherits(AGN, "SKIRTOR")) {
+                AGN = SKIRTOR_interp(lum = AGNlum, ta = AGNta, 
+                  p = AGNp, q = AGNq, ct = AGNct, rm = AGNrm, 
+                  an = AGNan, SKIRTOR = AGN)
+            }
+            dustlum_AGN = NA
+            dustmass_AGN = NA
+            if (AGN_emission == "angle_averaged") {
+                selected = AGN
+                mean_SED = AGN_angle_averaged_SED(
+                    AGN_model, AGNlum, AGNct, AGNrm, AGNta,
+                    AGNal, AGNbe, AGNp, AGNq)
+                direct = CF_screen_atten(
+                    wave = selected$wave, flux = selected$lum * .erg_to_lsol,
+                    tau = tau_screen, pow = pow_screen,
+                    Eb = Eb, L0 = L0, LFWHM = LFWHM)
+                AGN = atten_emit(
+                    wave = mean_SED$wave, flux = mean_SED$lum * .erg_to_lsol,
+                    tau = tau_screen, pow = pow_screen,
+                    alpha_SF = alpha_SF_screen, Dale = Dale,
+                    Dale_M2L_func = Dale_M2L_func, waveout = waveout,
+                    Eb = Eb, L0 = L0, LFWHM = LFWHM)
+                AGN$final = addspec(
+                    wave1 = selected$wave, flux1 = direct$flux,
+                    wave2 = AGN$emit$wave, flux2 = AGN$emit$flux,
+                    extrap = 0, waveout = waveout)
+            }
+            else {
+                AGN = atten_emit(wave = AGN$wave, flux = AGN$lum *
+                    .erg_to_lsol, tau = tau_screen, pow = pow_screen,
+                    alpha_SF = alpha_SF_screen, Dale = Dale,
+                    Dale_M2L_func = Dale_M2L_func, waveout = waveout,
+                    Eb = Eb, L0 = L0, LFWHM = LFWHM)
+            }
+            if (!is.null(Dale_M2L_func) & returnall) {
+                dustlum_screen = dustlum_screen + AGN$total_atten
+                dustmass_screen = dustmass_screen + AGN$dustmass
+            }
+            AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
+                z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
+                sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
+                  by = 0.10000000000000001), flux_in = "wave", 
+                flux_out = "wave", subtractonly = !addradio_AGN)
+            AGN = AGN$final
+            if (is.null(Final)) {
+                Final = AGN
+            }
+            else if (length(Final$flux) == length(AGN$flux)) {
+                Final = data.frame(wave = Final$wave, flux = Final$flux + 
+                  AGN$flux)
+            }
+            else {
+                Final = addspec(wave1 = Final$wave, flux1 = Final$flux, 
+                  wave2 = AGN$wave, flux2 = AGN$flux)
+            }
+            colnames(AGN)[2] = "lum"
+        }
+        else {
+            AGN = atten_emit(wave = AGN$Wave, flux = AGN$Aspec * 
+                AGNlum * .erg_to_lsol, tau = tau_AGN, pow = pow_AGN, 
+                alpha_SF = alpha_SF_AGN, Dale = Dale, Dale_M2L_func = Dale_M2L_func, 
+                waveout = waveout)
+            if (!is.null(Dale_M2L_func) & returnall) {
+                dustlum_AGN = AGN$total_atten
+                dustmass_AGN = AGN$dustmass
+            }
+            AGN = atten_emit(wave = AGN$final$wave, flux = AGN$final$flux, 
+                tau = tau_screen, pow = pow_screen, alpha_SF = alpha_SF_screen, 
+                Dale = Dale, Dale_M2L_func = Dale_M2L_func, waveout = waveout, 
+                Eb = Eb, L0 = L0, LFWHM = LFWHM)
+            if (!is.null(Dale_M2L_func) & returnall) {
+                dustlum_screen = dustlum_screen + AGN$total_atten
+                dustmass_screen = dustmass_screen + AGN$dustmass
+            }
+            else {
+                dustlum_AGN = 0
+                dustmass_AGN = 0
+            }
+            AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
+                z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
+                sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
+                  by = 0.10000000000000001), flux_in = "wave", 
+                flux_out = "wave", subtractonly = !addradio_AGN)
+            AGN = AGN$final
+            if (is.null(Final)) {
+                Final = AGN
+            }
+            else if (length(Final$flux) == length(AGN$flux)) {
+                Final = data.frame(wave = Final$wave, flux = Final$flux + 
+                  AGN$flux)
+            }
+            else {
+                Final = addspec(wave1 = Final$wave, flux1 = Final$flux, 
+                  wave2 = AGN$wave, flux2 = AGN$flux)
+            }
+            colnames(AGN)[2] = "lum"
+        }
     }
-
-    filtout = list()
-    for (i in filters) {
-      filtout = c(filtout, list(approxfun(getfilt(i))))
+    colnames(Final)[2] = "lum"
+    if (is.null(filtout) & !is.null(filters)) {
+        if (filters[1] == "all") {
+            cenwave = NULL
+            data("cenwave", envir = environment())
+            filters = cenwave$filter
+        }
+        else if (filters[1] == "GAMA") {
+            filters = c("FUV_GALEX", "NUV_GALEX", "u_VST", "g_VST", 
+                "r_VST", "i_VST", "Z_VISTA", "Y_VISTA", "J_VISTA", 
+                "H_VISTA", "K_VISTA", "W1_WISE", "W2_WISE", "W3_WISE", 
+                "W4_WISE", "P100_Herschel", "P160_Herschel", 
+                "S250_Herschel", "S350_Herschel", "S500_Herschel")
+        }
+        else if (filters[1] == "WAVES") {
+            filters = c("u_VST", "g_VST", "r_VST", "i_VST", "Z_VISTA", 
+                "Y_VISTA", "J_VISTA", "H_VISTA", "K_VISTA", "W1_WISE", 
+                "W2_WISE")
+        }
+        filtout = list()
+        for (i in filters) {
+            filtout = c(filtout, list(approxfun(getfilt(i))))
+        }
+        names(filtout) = filters
     }
-    names(filtout) = filters
-  }
-
-  if (z > 0 & !is.null(filtout)) {
-    Flux = Lum2Flux(
-      wave = Final$wave,
-      lum = Final$lum,
-      z = z,
-      H0 = H0,
-      OmegaM = OmegaM,
-      OmegaL = OmegaL,
-      ref = ref,
-      LumDist_Mpc = LumDist_Mpc
-    )
-    Flux$flux = convert_wave2freq(flux_wave = Flux$flux * .cgs_to_jansky,
-                                  wave = Flux$wave)
-
-    if (IGMabsorb > 0 & is.numeric(IGMabsorb)){
-      sel = which(Flux$wave/(1+z) < 1215.67)
-      Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
-      sel = which(Flux$wave/(1+z) < 911.75)
-      Flux$flux[sel] = 0
-    }else if (IGMabsorb == "Inoue14"){
-      Flux$flux = Flux$flux * Inoue14_IGM(Flux$wave, z, Inoue14_LAFcoef, Inoue14_DLAcoef)
+    if (z > 0 & !is.null(filtout)) {
+        Flux = Lum2Flux(wave = Final$wave, lum = Final$lum, z = z, 
+            H0 = H0, OmegaM = OmegaM, OmegaL = OmegaL, ref = ref, 
+            LumDist_Mpc = LumDist_Mpc)
+        Flux$flux = convert_wave2freq(flux_wave = Flux$flux * 
+            .cgs_to_jansky, wave = Flux$wave)
+        if (IGMabsorb > 0 & is.numeric(IGMabsorb)) {
+            sel = which(Flux$wave/(1 + z) < 1215.6700000000001)
+            Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
+            sel = which(Flux$wave/(1 + z) < 911.75)
+            Flux$flux[sel] = 0
+        }
+        else if (IGMabsorb == "Inoue14") {
+            Flux$flux = Flux$flux * Inoue14_IGM(Flux$wave, z, 
+                Inoue14_LAFcoef, Inoue14_DLAcoef)
+        }
+        photom_out = {
+        }
+        for (i in 1:length(filtout)) {
+            photom_out = c(photom_out, bandpass(flux = Flux$flux, 
+                wave = Flux$wave, filter = filtout[[i]]))
+        }
     }
-
-    photom_out = {}
-    for (i in 1:length(filtout)) {
-      photom_out = c(photom_out,
-                     bandpass(
-                       flux = Flux$flux,
-                       wave = Flux$wave,
-                       filter = filtout[[i]]
-                     ))
+    else if (z > 0 & is.null(filtout)) {
+        Flux = Lum2Flux(wave = Final$wave, lum = Final$lum, z = z, 
+            H0 = H0, OmegaM = OmegaM, OmegaL = OmegaL, ref = ref, 
+            LumDist_Mpc = LumDist_Mpc)
+        Flux$flux = convert_wave2freq(flux_wave = Flux$flux * 
+            .cgs_to_jansky, wave = Flux$wave)
+        if (IGMabsorb > 0 & is.numeric(IGMabsorb)) {
+            sel = which(Flux$wave/(1 + z) < 1215.6700000000001)
+            Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
+            sel = which(Flux$wave/(1 + z) < 911.75)
+            Flux$flux[sel] = 0
+        }
+        else if (IGMabsorb == "Inoue14") {
+            Flux$flux = Flux$flux * Inoue14_IGM(Flux$wave, z, 
+                Inoue14_LAFcoef, Inoue14_DLAcoef)
+        }
+        photom_out = Flux
     }
-  } else if (z > 0 & is.null(filtout)) {
-    Flux = Lum2Flux(
-      wave = Final$wave,
-      lum = Final$lum,
-      z = z,
-      H0 = H0,
-      OmegaM = OmegaM,
-      OmegaL = OmegaL,
-      ref = ref,
-      LumDist_Mpc = LumDist_Mpc
-    )
-    Flux$flux = convert_wave2freq(flux_wave = Flux$flux * .cgs_to_jansky,
-                                  wave = Flux$wave)
-    if (IGMabsorb > 0 & is.numeric(IGMabsorb)){
-      sel = which(Flux$wave/(1+z) < 1215.67)
-      Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
-      sel = which(Flux$wave/(1+z) < 911.75)
-      Flux$flux[sel] = 0
-    }else if (IGMabsorb == "Inoue14"){
-      Flux$flux = Flux$flux * Inoue14_IGM(Flux$wave, z, Inoue14_LAFcoef, Inoue14_DLAcoef)
+    else if (z <= 0 & !is.null(filtout)) {
+        Flux = cbind(wave = Final$wave, flux = Final$lum * .lsol_to_absolute)
+        photom_out = photom_flux(Flux, outtype = "magAB", filters = filtout)
     }
-
-    photom_out = Flux
-  } else if (z <= 0 & !is.null(filtout)) {
-    Flux = cbind(wave = Final$wave,
-                 flux = Final$lum * .lsol_to_absolute)
-    photom_out = photom_flux(Flux, outtype = 'magAB', filters = filtout)
-    #photom_out = photom_lum(Final, z=0, outtype = 'magAB', filters = filtout) same as above, but redundant
-  } else{
-    Flux = NULL
-    photom_out = NULL
-  }
-
-  if (returnall) {
-    StarsAtten = data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten)
-    StarsUnAtten = data.frame(wave = Stars$wave, lum = Stars$lum_unatten)
-
-    if(!isFALSE(Dale)){
-      DustEmit = data.frame(wave = Dust_Screen$Wave, lum = SED_Bdust_Sdust)
-    }else{
-      DustEmit = NULL
+    else {
+        Flux = NULL
+        photom_out = NULL
     }
-
-    output = list(
-      Photom = photom_out,
-      FinalFlux = Flux,
-      FinalLum = Final,
-      StarsAtten = StarsAtten,
-      StarsUnAtten = StarsUnAtten,
-      DustEmit = DustEmit,
-      AGN = AGN,
-      Stars = Stars,
-      dustmass = c(
-        birth = dustmass_birth,
-        screen = dustmass_screen,
-        AGN = dustmass_AGN,
-        total = sum(c(
-          dustmass_birth, dustmass_screen, dustmass_AGN
-        ), na.rm = TRUE)
-      ),
-      dustlum = c(
-        birth = dustlum_birth,
-        screen = dustlum_screen,
-        AGN = dustlum_AGN,
-        total = sum(c(
-          dustlum_birth, dustlum_screen, dustlum_AGN
-        ), na.rm = TRUE)
-      ),
-      #call = call,
-      z = z,
-      filters = filters,
-      filtout = filtout,
-      cosmo = list(H0=H0, OmegaM=OmegaM, OmegaL=OmegaL)
-    )
-    class(output) = 'ProSpectSED'
-    return(output)
-  } else{
-    return(photom_out)
-  }
+    if (returnall) {
+        component_wave = Final$wave
+        StarsAtten = data.frame(wave = component_wave,
+            lum = ProSpect_component_on_grid(
+                if (is.null(Stars)) NULL else
+                    data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten),
+                component_wave))
+        StarsUnAtten = data.frame(wave = component_wave,
+            lum = ProSpect_component_on_grid(
+                if (is.null(Stars)) NULL else
+                    data.frame(wave = Stars$wave, lum = Stars$lum_unatten),
+                component_wave))
+        if (!is.null(AGN)) {
+            AGN = data.frame(wave = component_wave,
+                lum = ProSpect_component_on_grid(AGN, component_wave))
+        }
+        DustEmit = data.frame(wave = component_wave,
+            lum = Final$lum - StarsAtten$lum -
+                if (is.null(AGN)) 0 else AGN$lum)
+        output = list(Photom = photom_out, FinalFlux = Flux, 
+            FinalLum = Final, Total = Final, StarsAtten = StarsAtten,
+            StarsUnAtten = StarsUnAtten, DustEmit = DustEmit,
+            AGN = AGN, Stars = Stars,
+            dustmass = c(birth = dustmass_birth,
+                screen = dustmass_screen, AGN = dustmass_AGN, 
+                total = sum(c(dustmass_birth, dustmass_screen, 
+                  dustmass_AGN), na.rm = TRUE)), dustlum = c(birth = dustlum_birth, 
+                screen = dustlum_screen, AGN = dustlum_AGN, total = sum(c(dustlum_birth, 
+                  dustlum_screen, dustlum_AGN), na.rm = TRUE)), 
+            z = z, filters = filters, filtout = filtout, cosmo = list(H0 = H0, 
+                OmegaM = OmegaM, OmegaL = OmegaL))
+        class(output) = "ProSpectSED"
+        return(output)
+    }
+    else {
+        return(photom_out)
+    }
 }
 
+# Full ProSpectSEDlike function from the supplied source, with AGN_emission forwarding fixed.
 ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
+
+  if (is.null(Data$arglist)) {
+    Data$arglist <- list()
+  }
+
+  if (!is.null(Data$AGN_emission)) {
+    Data$arglist$AGN_emission <- Data$AGN_emission
+  }
+
+  if (is.null(Data$arglist$AGN_emission)) {
+    Data$arglist$AGN_emission <- "viewing_angle"
+  }
+
+  if (!is.character(Data$arglist$AGN_emission) ||
+      length(Data$arglist$AGN_emission) != 1L ||
+      is.na(Data$arglist$AGN_emission) ||
+      !Data$arglist$AGN_emission %in% c("viewing_angle", "angle_averaged")) {
+    stop(
+      "Data$AGN_emission must be either 'viewing_angle' or 'angle_averaged'.",
+      call. = FALSE
+    )
+  }
+
+  # Keep the selected value visible at the top level as well.
+  Data$AGN_emission <- Data$arglist$AGN_emission
+
+  if (isTRUE(Data$verbose)) {
+    message("ProSpectSED AGN_emission = '", Data$arglist$AGN_emission, "'")
+  }
   if (is.null(Data$fit)) {
     Data$fit = 'optim'
   }
@@ -867,3 +772,4 @@ ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
     return('Bad fit type!')
   }
 }
+
