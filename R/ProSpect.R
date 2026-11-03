@@ -59,7 +59,7 @@ ProSpectSED = function(SFH = SFHfunc,
         waveout_max = max(waveout)
     }
     else {
-        waveout_max = 9.35
+        waveout_max = 9.3499999999999996
     }
     if ("emission" %in% names(list(...))) {
         if (list(...)$emission & missing(waveout)) {
@@ -122,7 +122,7 @@ ProSpectSED = function(SFH = SFHfunc,
                 flux = SED_Stars_Bdust_Sdust$flux, z = 0, Te = Te_SF, 
                 ff_frac = ff_frac_SF, ff_power = ff_power_SF, 
                 sy_power = sy_power_SF, wavesamp = seq(6, waveout_max, 
-                  by = 0.1), flux_in = "wave", 
+                  by = 0.10000000000000001), flux_in = "wave", 
                 flux_out = "wave")
         }
         else if (!isFALSE(Dale)) {
@@ -151,37 +151,48 @@ ProSpectSED = function(SFH = SFHfunc,
             stop("Dale cannot be FALSE when using an AGN model!")
         }
         if (AGN_emission == "angle_averaged" &&
-            !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR") &&
-            !inherits(AGN, "Fritz_anav") && !inherits(AGN, "SKIRTOR_anav")) {
+            !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR")) {
             stop("Angle-averaged AGN emission requires a Fritz or SKIRTOR model")
         }
         if (inherits(AGN, "Fritz") | inherits(AGN, "SKIRTOR")) {
             if (AGN_emission == "angle_averaged") {
-                AGN_model = AGN
+                if (inherits(AGN, "Fritz") && is.null(Fritz_anav)) {
+                  data('Fritz_anav', envir = environment())
+                }
+                if (inherits(AGN, "SKIRTOR") && is.null(SKIRTOR_anav)) {
+                  data('SKIRTOR_anav', envir = environment())
+                }
             }
             if (inherits(AGN, "Fritz")) {
-                AGN = Fritz_interp(lum = AGNlum, ct = AGNct, 
+                AGN_view = Fritz_interp(lum = AGNlum, ct = AGNct, 
                   al = AGNal, be = AGNbe, ta = AGNta, rm = AGNrm, 
                   an = AGNan, Fritz = AGN)
+                if (AGN_emission == "angle_averaged") {
+                  AGN_mean = Fritz_anav_interp(lum = AGNlum, ct = AGNct,
+                    rm = AGNrm, ta = AGNta, al = AGNal, be = AGNbe,
+                    Fritz_anav = Fritz_anav)
+                }
             }
             else if (inherits(AGN, "SKIRTOR")) {
-                AGN = SKIRTOR_interp(lum = AGNlum, ta = AGNta, 
+                AGN_view = SKIRTOR_interp(lum = AGNlum, ta = AGNta, 
                   p = AGNp, q = AGNq, ct = AGNct, rm = AGNrm, 
                   an = AGNan, SKIRTOR = AGN)
+                if (AGN_emission == "angle_averaged") {
+                  AGN_mean = SKIRTOR_anav_interp(lum = AGNlum,
+                    ta = AGNta, p = AGNp, q = AGNq, ct = AGNct,
+                    rm = AGNrm, SKIRTOR_anav = SKIRTOR_anav)
+                }
             }
             dustlum_AGN = NA
             dustmass_AGN = NA
             if (AGN_emission == "angle_averaged") {
-                selected = AGN
-                mean_SED = AGN_angle_averaged_SED(
-                    AGN_model, AGNlum, AGNct, AGNrm, AGNta,
-                    AGNal, AGNbe, AGNp, AGNq)
+                selected = AGN_view
                 direct = CF_screen_atten(
                     wave = selected$wave, flux = selected$lum * .erg_to_lsol,
                     tau = tau_screen, pow = pow_screen,
                     Eb = Eb, L0 = L0, LFWHM = LFWHM)
                 AGN = atten_emit(
-                    wave = mean_SED$wave, flux = mean_SED$lum * .erg_to_lsol,
+                    wave = AGN_mean$wave, flux = AGN_mean$lum * .erg_to_lsol,
                     tau = tau_screen, pow = pow_screen,
                     alpha_SF = alpha_SF_screen, Dale = Dale,
                     Dale_M2L_func = Dale_M2L_func, waveout = waveout,
@@ -192,7 +203,7 @@ ProSpectSED = function(SFH = SFHfunc,
                     extrap = 0, waveout = waveout)
             }
             else {
-                AGN = atten_emit(wave = AGN$wave, flux = AGN$lum *
+                AGN = atten_emit(wave = AGN_view$wave, flux = AGN_view$lum *
                     .erg_to_lsol, tau = tau_screen, pow = pow_screen,
                     alpha_SF = alpha_SF_screen, Dale = Dale,
                     Dale_M2L_func = Dale_M2L_func, waveout = waveout,
@@ -205,48 +216,7 @@ ProSpectSED = function(SFH = SFHfunc,
             AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
                 z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
                 sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
-                  by = 0.1), flux_in = "wave", 
-                flux_out = "wave", subtractonly = !addradio_AGN)
-            AGN = AGN$final
-            if (is.null(Final)) {
-                Final = AGN
-            }
-            else if (length(Final$flux) == length(AGN$flux)) {
-                Final = data.frame(wave = Final$wave, flux = Final$flux + 
-                  AGN$flux)
-            }
-            else {
-                Final = addspec(wave1 = Final$wave, flux1 = Final$flux, 
-                  wave2 = AGN$wave, flux2 = AGN$flux)
-            }
-            colnames(AGN)[2] = "lum"
-        }
-        else if (inherits(AGN, "Fritz_anav") | inherits(AGN, "SKIRTOR_anav")) {
-            if (inherits(AGN, "Fritz_anav")) {
-                AGN = Fritz_anav_interp(lum = AGNlum, ct = AGNct, 
-                  al = AGNal, be = AGNbe, ta = AGNta, rm = AGNrm, 
-                  Fritz_anav = AGN)
-            }
-            else {
-                AGN = SKIRTOR_anav_interp(lum = AGNlum, ta = AGNta, 
-                  p = AGNp, q = AGNq, ct = AGNct, rm = AGNrm, 
-                  SKIRTOR_anav = AGN)
-            }
-            dustlum_AGN = NA
-            dustmass_AGN = NA
-            AGN = atten_emit(wave = AGN$wave, flux = AGN$lum * 
-                .erg_to_lsol, tau = tau_screen, pow = pow_screen, 
-                alpha_SF = alpha_SF_screen, Dale = Dale, 
-                Dale_M2L_func = Dale_M2L_func, waveout = waveout, 
-                Eb = Eb, L0 = L0, LFWHM = LFWHM)
-            if (!is.null(Dale_M2L_func) & returnall) {
-                dustlum_screen = dustlum_screen + AGN$total_atten
-                dustmass_screen = dustmass_screen + AGN$dustmass
-            }
-            AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
-                z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
-                sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
-                  by = 0.1), flux_in = "wave", 
+                  by = 0.10000000000000001), flux_in = "wave", 
                 flux_out = "wave", subtractonly = !addradio_AGN)
             AGN = AGN$final
             if (is.null(Final)) {
@@ -286,7 +256,7 @@ ProSpectSED = function(SFH = SFHfunc,
             AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
                 z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
                 sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
-                  by = 0.1), flux_in = "wave", 
+                  by = 0.10000000000000001), flux_in = "wave", 
                 flux_out = "wave", subtractonly = !addradio_AGN)
             AGN = AGN$final
             if (is.null(Final)) {
@@ -335,7 +305,7 @@ ProSpectSED = function(SFH = SFHfunc,
         Flux$flux = convert_wave2freq(flux_wave = Flux$flux * 
             .cgs_to_jansky, wave = Flux$wave)
         if (IGMabsorb > 0 & is.numeric(IGMabsorb)) {
-            sel = which(Flux$wave/(1 + z) < 1215.67)
+            sel = which(Flux$wave/(1 + z) < 1215.6700000000001)
             Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
             sel = which(Flux$wave/(1 + z) < 911.75)
             Flux$flux[sel] = 0
@@ -358,7 +328,7 @@ ProSpectSED = function(SFH = SFHfunc,
         Flux$flux = convert_wave2freq(flux_wave = Flux$flux * 
             .cgs_to_jansky, wave = Flux$wave)
         if (IGMabsorb > 0 & is.numeric(IGMabsorb)) {
-            sel = which(Flux$wave/(1 + z) < 1215.67)
+            sel = which(Flux$wave/(1 + z) < 1215.6700000000001)
             Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
             sel = which(Flux$wave/(1 + z) < 911.75)
             Flux$flux[sel] = 0
