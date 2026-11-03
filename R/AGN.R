@@ -71,6 +71,7 @@ Fritz_anav_interp = function(lum = 1e+44, ct = 40, rm = 60, ta = 1, al = 4, be =
   if(is.null(Fritz_anav)){
     Fritz_anav = NULL
     data('Fritz_anav', envir = environment())
+    Fritz_anav = get('Fritz_anav', envir = environment())
   }
 
   ctmix = interp_quick(ct, Fritz_anav$ct)
@@ -104,6 +105,7 @@ SKIRTOR_anav_interp = function(lum = 1e+44, ct = 40, rm = 60, ta = 1, p = 1, q =
   if(is.null(SKIRTOR_anav)){
     SKIRTOR_anav = NULL
     data('SKIRTOR_anav', envir = environment())
+    SKIRTOR_anav = get('SKIRTOR_anav', envir = environment())
   }
 
   tmix = interp_quick(ta, SKIRTOR_anav$ta)
