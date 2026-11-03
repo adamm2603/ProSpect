@@ -78,7 +78,7 @@ Object or scalar logical; optional. Pass in the Dale dust library \code{\link[Pr
 Object; optional. Pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}}, \code{\link{AGN_UnOb_Sparse}}, \code{\link[ProSpectData:Fritz]{Fritz}}, or \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}. These objects have classes attached, which ensures the correct AGN code is executed (so users should not simply try to load their own specific AGN model).
 }
   \item{AGN_anav}{
-Object; optional. Pass in the angle-averaged AGN template to use when \option{AGN_emission} = \code{"angle_averaged"}. Must be one of \code{\link[ProSpectData]{Fritz_anav}} or \code{\link[ProSpectData]{SKIRTOR_anav}}. Providing this avoids reloading the averaged template from disk on each call.
+Object; optional. Pass in the angle-averaged AGN template to use when \option{AGN_emission} = \code{"angle_averaged"}. Must be one of \code{Fritz_anav} or \code{SKIRTOR_anav}. Providing this avoids reloading the averaged template from disk on each call.
 }
 
   \item{filtout}{
