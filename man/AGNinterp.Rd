@@ -99,7 +99,7 @@ Aaron Robotham & Adam Marshall
 }
 \seealso{
 \code{\link[ProSpectData:Fritz]{Fritz}}, \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}},
-\code{\link[ProSpectData:Fritz_anav]{Fritz_anav}}, \code{\link[ProSpectData:SKIRTOR_anav]{SKIRTOR_anav}}
+\code{\link[ProSpectData]{Fritz_anav}}, \code{\link[ProSpectData]{SKIRTOR_anav}}
 }
 \examples{
 \dontrun{
