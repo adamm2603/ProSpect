@@ -2,9 +2,12 @@
 \alias{AGNinterp}
 \alias{Fritz_interp}
 \alias{SKIRTOR_interp}
+\alias{Fritz_anav_interp}
+\alias{SKIRTOR_anav_interp}
+\alias{ProSpect_component_on_grid}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Interpolate the Fritz (2006) and SKIRTOR (2016) AGN Templates
+Interpolate the Fritz (2006), SKIRTOR (2016), and angle-averaged AGN Templates
 }
 \description{
 Interpolates between non-computed values of the Fritz 2006 AGN Templates using a mixture of schemes. This is similar to the approach used for \code{\link{Dale_interp}}. The model is much too complex to summarise here, so interested readers should refer to the source papers if using this function for science.
@@ -15,6 +18,13 @@ Fritz_interp(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, al = 4, be = -0.5,
 
 SKIRTOR_interp(lum = 1e+44, ct = 40, rm = 60, an = 30, ta = 1, p = 1, q = 1,
   SKIRTOR = NULL)
+
+Fritz_anav_interp(lum = 1e+44, ct = 40, rm = 60, ta = 1, al = 4, be = -0.5,
+  Fritz_anav = NULL)
+
+SKIRTOR_anav_interp(lum = 1e+44, ct = 40, rm = 60, ta = 1, p = 1, q = 1,
+  SKIRTOR_anav = NULL)
+
 }
 \arguments{
   \item{lum}{
@@ -50,6 +60,12 @@ The \option{Fritz} data. Providing this directly reduces disk IO since it will u
   \item{SKIRTOR}{
 The \option{SKIRTOR} data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
 }
+  \item{Fritz_anav}{
+The angle-averaged \option{Fritz_anav} data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
+}
+  \item{SKIRTOR_anav}{
+The angle-averaged \option{SKIRTOR_anav} data. Providing this directly reduces disk IO since it will use the copy already loaded into RAM. If not provided it will load the data from disk.
+}
 }
 \details{
 The below is taken directly from the included Fritz AGN documentation:
@@ -82,7 +98,8 @@ Stalevski et al, 2016, MNRAS, 458, 2288
 Aaron Robotham & Adam Marshall
 }
 \seealso{
-\code{\link[ProSpectData:Fritz]{Fritz}}, \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}
+\code{\link[ProSpectData:Fritz]{Fritz}}, \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}},
+\code{\link[ProSpectData:Fritz_anav]{Fritz_anav}}, \code{\link[ProSpectData:SKIRTOR_anav]{SKIRTOR_anav}}
 }
 \examples{
 \dontrun{
