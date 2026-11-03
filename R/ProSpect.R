@@ -151,7 +151,8 @@ ProSpectSED = function(SFH = SFHfunc,
             stop("Dale cannot be FALSE when using an AGN model!")
         }
         if (AGN_emission == "angle_averaged" &&
-            !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR")) {
+            !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR") &&
+            !inherits(AGN, "Fritz_anav") && !inherits(AGN, "SKIRTOR_anav")) {
             stop("Angle-averaged AGN emission requires a Fritz or SKIRTOR model")
         }
         if (inherits(AGN, "Fritz") | inherits(AGN, "SKIRTOR")) {
@@ -197,6 +198,47 @@ ProSpectSED = function(SFH = SFHfunc,
                     Dale_M2L_func = Dale_M2L_func, waveout = waveout,
                     Eb = Eb, L0 = L0, LFWHM = LFWHM)
             }
+            if (!is.null(Dale_M2L_func) & returnall) {
+                dustlum_screen = dustlum_screen + AGN$total_atten
+                dustmass_screen = dustmass_screen + AGN$dustmass
+            }
+            AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
+                z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
+                sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
+                  by = 0.10000000000000001), flux_in = "wave", 
+                flux_out = "wave", subtractonly = !addradio_AGN)
+            AGN = AGN$final
+            if (is.null(Final)) {
+                Final = AGN
+            }
+            else if (length(Final$flux) == length(AGN$flux)) {
+                Final = data.frame(wave = Final$wave, flux = Final$flux + 
+                  AGN$flux)
+            }
+            else {
+                Final = addspec(wave1 = Final$wave, flux1 = Final$flux, 
+                  wave2 = AGN$wave, flux2 = AGN$flux)
+            }
+            colnames(AGN)[2] = "lum"
+        }
+        else if (inherits(AGN, "Fritz_anav") | inherits(AGN, "SKIRTOR_anav")) {
+            if (inherits(AGN, "Fritz_anav")) {
+                AGN = Fritz_anav_interp(lum = AGNlum, ct = AGNct, 
+                  al = AGNal, be = AGNbe, ta = AGNta, rm = AGNrm, 
+                  Fritz_anav = AGN)
+            }
+            else {
+                AGN = SKIRTOR_anav_interp(lum = AGNlum, ta = AGNta, 
+                  p = AGNp, q = AGNq, ct = AGNct, rm = AGNrm, 
+                  SKIRTOR_anav = AGN)
+            }
+            dustlum_AGN = NA
+            dustmass_AGN = NA
+            AGN = atten_emit(wave = AGN$wave, flux = AGN$lum * 
+                .erg_to_lsol, tau = tau_screen, pow = pow_screen, 
+                alpha_SF = alpha_SF_screen, Dale = Dale, 
+                Dale_M2L_func = Dale_M2L_func, waveout = waveout, 
+                Eb = Eb, L0 = L0, LFWHM = LFWHM)
             if (!is.null(Dale_M2L_func) & returnall) {
                 dustlum_screen = dustlum_screen + AGN$total_atten
                 dustmass_screen = dustmass_screen + AGN$dustmass
