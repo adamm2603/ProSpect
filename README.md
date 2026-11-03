@@ -71,6 +71,14 @@ or try the following:
 Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true”)
 remotes::install_github("asgr/ProSpect")
 ```
+install_github() was deprecated in devtools 2.5.0. So may need to use pak
+
+```R
+pak::pak("asgr/ProSpect")
+```
+
+
+
 
 I also have these options set by default in my .Rprofile (Google what that means and where it goes), which seems to help with some of the remote install issues some people face:
 
