@@ -362,24 +362,36 @@ ProSpectSED = function(SFH = SFHfunc,
         photom_out = NULL
     }
     if (returnall) {
-        component_wave = Final$wave
-        StarsAtten = data.frame(wave = component_wave,
-            lum = ProSpect_component_on_grid(
-                if (is.null(Stars)) NULL else
-                    data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten),
-                component_wave))
-        StarsUnAtten = data.frame(wave = component_wave,
-            lum = ProSpect_component_on_grid(
-                if (is.null(Stars)) NULL else
-                    data.frame(wave = Stars$wave, lum = Stars$lum_unatten),
-                component_wave))
-        if (!is.null(AGN)) {
-            AGN = data.frame(wave = component_wave,
-                lum = ProSpect_component_on_grid(AGN, component_wave))
+        if (is.null(AGN)) {
+            StarsAtten = if (is.null(Stars)) NULL else
+                data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten)
+            StarsUnAtten = if (is.null(Stars)) NULL else
+                data.frame(wave = Stars$wave, lum = Stars$lum_unatten)
+            DustEmit = if (isFALSE(Dale)) {
+                NULL
+            } else {
+                data.frame(wave = Dust_Screen$Wave, lum = SED_Bdust_Sdust)
+            }
+        } else {
+            component_wave = Final$wave
+            StarsAtten = data.frame(wave = component_wave,
+                lum = ProSpect_component_on_grid(
+                    if (is.null(Stars)) NULL else
+                        data.frame(wave = Stars$wave_lum, lum = Stars$lum_atten),
+                    component_wave))
+            StarsUnAtten = data.frame(wave = component_wave,
+                lum = ProSpect_component_on_grid(
+                    if (is.null(Stars)) NULL else
+                        data.frame(wave = Stars$wave, lum = Stars$lum_unatten),
+                    component_wave))
+            if (!is.null(AGN)) {
+                AGN = data.frame(wave = component_wave,
+                    lum = ProSpect_component_on_grid(AGN, component_wave))
+            }
+            DustEmit = data.frame(wave = component_wave,
+                lum = Final$lum - StarsAtten$lum -
+                    if (is.null(AGN)) 0 else AGN$lum)
         }
-        DustEmit = data.frame(wave = component_wave,
-            lum = Final$lum - StarsAtten$lum -
-                if (is.null(AGN)) 0 else AGN$lum)
         output = list(Photom = photom_out, FinalFlux = Flux, 
             FinalLum = Final, Total = Final, StarsAtten = StarsAtten,
             StarsUnAtten = StarsUnAtten, DustEmit = DustEmit,
