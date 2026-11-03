@@ -9,17 +9,21 @@ Top Level ProSpect SED Functions
 \code{ProSpectSED} computes a fully attenuated and re-emitted SED model incompassing star light (for a number of different star formation history models), dust and AGN. \code{ProSpectSEDlike} is an interface for computing likelihoods, and by extension is the workhorse code that allows model fitting using a number of techniques.
 }
 \usage{
-ProSpectSED(SFH = SFHfunc, z = 0.1, tau_birth = 1, tau_screen = 0.3, tau_AGN = 1,
-  pow_birth = -0.7, pow_screen = -0.7, pow_AGN = -0.7, alpha_SF_birth = 1,
-  alpha_SF_screen = 3, alpha_SF_AGN = 0, AGNlum = 0, sparse = 5, speclib = NULL,
-  Dale = NULL, AGN = NULL, AGN_anav = NULL, filtout = NULL, filters = "all", Dale_M2L_func = NULL,
+ProSpectSED(SFH = SFHfunc, z = 0.1, tau_birth = 1, tau_screen = 0.3,
+  tau_AGN = 1, pow_birth = -0.7, pow_screen = -0.7, pow_AGN = -0.7,
+  alpha_SF_birth = 1, alpha_SF_screen = 3, alpha_SF_AGN = 0,
+  AGNlum = 0, sparse = 5, speclib = NULL, Dale = NULL, AGN = NULL,
+  AGN_anav = NULL, filtout = NULL, filters = "all", Dale_M2L_func = NULL,
   returnall = TRUE, H0 = 67.8, OmegaM = 0.308, OmegaL = 1 - OmegaM,
-  waveout = seq(2, 9.35, by = 0.01), ref, unimax = 1.38e+10, agemax = NULL,
-  LumDist_Mpc = NULL, addradio_SF = FALSE, addradio_AGN = FALSE, Te_SF = 10000,
-  ff_frac_SF = 0.1, ff_power_SF = -0.1, sy_power_SF = -0.8, Te_AGN = 10000,
-  ff_frac_AGN = 0.1, ff_power_AGN = -0.1, sy_power_AGN = -0.8, AGNct = 40, AGNrm = 60,
-  AGNan = 30, AGNta = 1, AGNal = 4, AGNbe = -0.5, AGNp = 1, AGNq = 1, Eb = 0, L0 = 2175.8,
-  LFWHM = 470, IGMabsorb = 0, Inoue14_LAFcoef = NULL, Inoue14_DLAcoef = NULL, AGN_emission = c("viewing_angle", "angle_averaged"), ...)
+  waveout = seq(2, 9.35, by = 0.01), ref, unimax = 1.38e+10,
+  agemax = NULL, LumDist_Mpc = NULL, addradio_SF = FALSE,
+  addradio_AGN = FALSE, Te_SF = 10000, ff_frac_SF = 0.1,
+  ff_power_SF = -0.1, sy_power_SF = -0.8, Te_AGN = 10000,
+  ff_frac_AGN = 0.1, ff_power_AGN = -0.1, sy_power_AGN = -0.8,
+  AGNct = 40, AGNrm = 60, AGNan = 30, AGNta = 1, AGNal = 4,
+  AGNbe = -0.5, AGNp = 1, AGNq = 1, Eb = 0, L0 = 2175.8,
+  LFWHM = 470, IGMabsorb = 0, Inoue14_LAFcoef = NULL,
+  Inoue14_DLAcoef = NULL, AGN_emission = c("viewing_angle", "angle_averaged"), ...)
 
 ProSpectSEDlike(parm = c(8,9,10,10,0,-0.5,0.2), Data)
 }
@@ -74,11 +78,11 @@ Object or scalar logical; optional. Pass in the Dale dust library \code{\link[Pr
 Object; optional. Pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}}, \code{\link{AGN_UnOb_Sparse}}, \code{\link[ProSpectData:Fritz]{Fritz}}, or \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}. These objects have classes attached, which ensures the correct AGN code is executed (so users should not simply try to load their own specific AGN model).
 }
   \item{AGN_anav}{
-Object; optional. Pass in the angle-averaged AGN template to use when \option{AGN_emission} = \code{"angle_averaged"}. Must be one of \code{\link[ProSpectData:Fritz_anav]{Fritz_anav}} or \code{\link[ProSpectData:SKIRTOR_anav]{SKIRTOR_anav}}. Providing this avoids reloading the averaged template from disk on each call.
+Object; optional. Pass in the angle-averaged AGN template to use when \option{AGN_emission} = \code{"angle_averaged"}. Must be one of \code{\link[ProSpectData]{Fritz_anav}} or \code{\link[ProSpectData]{SKIRTOR_anav}}. Providing this avoids reloading the averaged template from disk on each call.
 }
 
   \item{filtout}{
-Object; required. Pass in the photometric filters directly (either matrices of functions). If \code{filters} is a vector of filter names, this can be achieved efficiently with a command like: filtout=foreach(i = filters)\%do\%{getfilt(i)} or filtout=foreach(i = filters)\%do\%{approxfun(getfilt(i))}, where the latter will be faster (see \code{\link{getfilt}}).
+Object; required. Pass in the photometric filters directly (either matrices of functions). If \code{filters} is a vector of filter names, this can be achieved efficiently with a command like: filtout=foreach(i = filters)\%do\%\{getfilt(i)\} or filtout=foreach(i = filters)\%do\%\{approxfun(getfilt(i))\}, where the latter will be faster (see \code{\link{getfilt}}).
 }
   \item{filters}{
 Character vector; names of filters to use. See \code{\link{filters}} for options. Default 'all' selects all filters, 'GAMA' returns just the classic GAMA survey filters. Can also be a list of matrices or functions to pass into \code{\link{bandpass}}. This creates increasingly faster code, but requires more user effort.
@@ -231,7 +235,7 @@ List, optional but recommended; pass in the Dale dust library directly (should b
 Data.frame, optional; pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}} or \code{\link{AGN_UnOb_Sparse}}.
 }
   \item{Data$filtout}{
-List; required. Pass in the photometric filters directly. If \code{filters} is a vector of filter names, this can be achieved efficiently with a command like: filtout=foreach(i = filters)\%do\%{getfilt(i)} or filtout=foreach(i = filters)\%do\%{approxfun(getfilt(i))}, where the latter will be faster (see \code{\link{getfilt}}).
+List; required. Pass in the photometric filters directly. If \code{filters} is a vector of filter names, this can be achieved efficiently with a command like: filtout=foreach(i = filters)\%do\%\{getfilt(i)\} or filtout=foreach(i = filters)\%do\%\{approxfun(getfilt(i))\}, where the latter will be faster (see \code{\link{getfilt}}).
 }
   \item{Data$fit}{
 Character scalar, required; one of 'optim', 'LD' or 'check'. See Value for full information on what is output in each case. If missing it is set to 'optim'.
