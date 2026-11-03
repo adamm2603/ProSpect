@@ -12,7 +12,7 @@ Top Level ProSpect SED Functions
 ProSpectSED(SFH = SFHfunc, z = 0.1, tau_birth = 1, tau_screen = 0.3, tau_AGN = 1,
   pow_birth = -0.7, pow_screen = -0.7, pow_AGN = -0.7, alpha_SF_birth = 1,
   alpha_SF_screen = 3, alpha_SF_AGN = 0, AGNlum = 0, sparse = 5, speclib = NULL,
-  Dale = NULL, AGN = NULL, filtout = NULL, filters = "all", Dale_M2L_func = NULL,
+  Dale = NULL, AGN = NULL, AGN_anav = NULL, filtout = NULL, filters = "all", Dale_M2L_func = NULL,
   returnall = TRUE, H0 = 67.8, OmegaM = 0.308, OmegaL = 1 - OmegaM,
   waveout = seq(2, 9.35, by = 0.01), ref, unimax = 1.38e+10, agemax = NULL,
   LumDist_Mpc = NULL, addradio_SF = FALSE, addradio_AGN = FALSE, Te_SF = 10000,
@@ -71,7 +71,10 @@ Object; optional. Pass in the spectral library directly. Must be one of \code{\l
 Object or scalar logical; optional. Pass in the Dale dust library \code{\link[ProSpectData:Dale_NormTot]{Dale_NormTot}} directly (otherwise will run, but not work correctly). Default of NULL will load the \code{\link[ProSpectData:Dale_NormTot]{Dale_NormTot}} library, but faster to pass it in if being used for e.g. fitting. If FALSE it will not re-emit the attenuated light in the MIR/FIR using Dale templates. This might be desired if the range of interest is purely the UV-NIR and you want faster generation/fitting (since the re-emitted dust will not be notable until at least the MIR).
 }
   \item{AGN}{
-Object; optional. Pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}}, \code{\link{AGN_UnOb_Sparse}}, \code{\link[ProSpectData:Fritz]{Fritz}}, or \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}. These objects have classes attached, which ensures the correct AGN code is executed (so users should not simply try to load their own specific AGN model). When \option{AGN_emission} is set to \code{"angle_averaged"}, ProSpect will internally use the matching \code{Fritz_anav} or \code{SKIRTOR_anav} template.
+Object; optional. Pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}}, \code{\link{AGN_UnOb_Sparse}}, \code{\link[ProSpectData:Fritz]{Fritz}}, or \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}. These objects have classes attached, which ensures the correct AGN code is executed (so users should not simply try to load their own specific AGN model).
+}
+  \item{AGN_anav}{
+Object; optional. Pass in the angle-averaged AGN template to use when \option{AGN_emission} = \code{"angle_averaged"}. Must be one of \code{\link[ProSpectData:Fritz_anav]{Fritz_anav}} or \code{\link[ProSpectData:SKIRTOR_anav]{SKIRTOR_anav}}. Providing this avoids reloading the averaged template from disk on each call.
 }
 
   \item{filtout}{
