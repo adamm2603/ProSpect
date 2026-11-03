@@ -71,7 +71,7 @@ Object; optional. Pass in the spectral library directly. Must be one of \code{\l
 Object or scalar logical; optional. Pass in the Dale dust library \code{\link[ProSpectData:Dale_NormTot]{Dale_NormTot}} directly (otherwise will run, but not work correctly). Default of NULL will load the \code{\link[ProSpectData:Dale_NormTot]{Dale_NormTot}} library, but faster to pass it in if being used for e.g. fitting. If FALSE it will not re-emit the attenuated light in the MIR/FIR using Dale templates. This might be desired if the range of interest is purely the UV-NIR and you want faster generation/fitting (since the re-emitted dust will not be notable until at least the MIR).
 }
   \item{AGN}{
-Object; optional. Pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}}, \code{\link{AGN_UnOb_Sparse}}, \code{\link[ProSpectData:Fritz]{Fritz}}, or \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}. These objects have classes attached, when ensures the correct AGN code is executed (so users should not simply try to load their own specific AGN model).
+Object; optional. Pass in the AGN template to use. Must be one of \code{\link{AGN_UnOb}}, \code{\link{AGN_UnOb_Sparse}}, \code{\link[ProSpectData:Fritz]{Fritz}}, or \code{\link[ProSpectData:SKIRTOR]{SKIRTOR}}. These objects have classes attached, which ensures the correct AGN code is executed (so users should not simply try to load their own specific AGN model). When \option{AGN_emission} is set to \code{"angle_averaged"}, ProSpect will internally use the matching \code{Fritz_anav} or \code{SKIRTOR_anav} template.
 }
 
   \item{filtout}{
@@ -165,7 +165,7 @@ Numeric scalar; Index for the radial density gradient in the SKIRTOR AGN model.
 Numeric scalar; Index for the angular density gradient in the SKIRTOR AGN model.
   }
   \item{AGN_emission}{
-Character vector; Choice of use of viewing_angle or angle_averaged AGN SED to calculate FIR emission due to UV attenuation by the ISM.
+Character vector; Choice of use of viewing_angle or angle_averaged AGN SED to calculate FIR emission due to UV attenuation by the ISM. The angle-averaged mode internally uses the matching \code{Fritz_anav} or \code{SKIRTOR_anav} template.
   }
   \item{parm}{
 Numeric vector; arguments to be passed to \code{ProSpectSED}.
