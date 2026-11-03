@@ -14,6 +14,7 @@ ProSpectSED = function(SFH = SFHfunc,
                           speclib = NULL,
                           Dale = NULL,
                           AGN = NULL,
+                          AGN_anav = NULL,
                           filtout = NULL,
                           filters = 'all',
                           Dale_M2L_func = NULL,
@@ -154,13 +155,27 @@ ProSpectSED = function(SFH = SFHfunc,
             !inherits(AGN, "Fritz") && !inherits(AGN, "SKIRTOR")) {
             stop("Angle-averaged AGN emission requires a Fritz or SKIRTOR model")
         }
+        if (AGN_emission == "angle_averaged" && !is.null(AGN_anav)) {
+            if (inherits(AGN, "Fritz") && !inherits(AGN_anav, "Fritz_anav")) {
+                stop("AGN_anav must be a Fritz_anav object when AGN is Fritz and AGN_emission = 'angle_averaged'")
+            }
+            if (inherits(AGN, "SKIRTOR") && !inherits(AGN_anav, "SKIRTOR_anav")) {
+                stop("AGN_anav must be a SKIRTOR_anav object when AGN is SKIRTOR and AGN_emission = 'angle_averaged'")
+            }
+        }
         if (inherits(AGN, "Fritz") | inherits(AGN, "SKIRTOR")) {
             if (AGN_emission == "angle_averaged") {
-                if (inherits(AGN, "Fritz") && is.null(Fritz_anav)) {
-                  data('Fritz_anav', envir = environment())
+                if (inherits(AGN, "Fritz")) {
+                  if (is.null(AGN_anav)) {
+                    data('Fritz_anav', envir = environment())
+                    AGN_anav = Fritz_anav
+                  }
                 }
-                if (inherits(AGN, "SKIRTOR") && is.null(SKIRTOR_anav)) {
-                  data('SKIRTOR_anav', envir = environment())
+                if (inherits(AGN, "SKIRTOR")) {
+                  if (is.null(AGN_anav)) {
+                    data('SKIRTOR_anav', envir = environment())
+                    AGN_anav = SKIRTOR_anav
+                  }
                 }
             }
             if (inherits(AGN, "Fritz")) {
@@ -170,7 +185,7 @@ ProSpectSED = function(SFH = SFHfunc,
                 if (AGN_emission == "angle_averaged") {
                   AGN_mean = Fritz_anav_interp(lum = AGNlum, ct = AGNct,
                     rm = AGNrm, ta = AGNta, al = AGNal, be = AGNbe,
-                    Fritz_anav = Fritz_anav)
+                    Fritz_anav = AGN_anav)
                 }
             }
             else if (inherits(AGN, "SKIRTOR")) {
@@ -180,7 +195,7 @@ ProSpectSED = function(SFH = SFHfunc,
                 if (AGN_emission == "angle_averaged") {
                   AGN_mean = SKIRTOR_anav_interp(lum = AGNlum,
                     ta = AGNta, p = AGNp, q = AGNq, ct = AGNct,
-                    rm = AGNrm, SKIRTOR_anav = SKIRTOR_anav)
+                    rm = AGNrm, SKIRTOR_anav = AGN_anav)
                 }
             }
             dustlum_AGN = NA
@@ -395,6 +410,10 @@ ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
 
   if (!is.null(Data$AGN_emission)) {
     Data$arglist$AGN_emission <- Data$AGN_emission
+  }
+
+  if (!is.null(Data$AGN_anav)) {
+    Data$arglist$AGN_anav <- Data$AGN_anav
   }
 
   if (is.null(Data$arglist$AGN_emission)) {
@@ -613,6 +632,7 @@ ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
         list(speclib = Data$speclib),
         list(Dale = Data$Dale),
         list(AGN = Data$AGN),
+        list(AGN_anav = Data$AGN_anav),
         list(filtout = filtout),
         list(filters = NULL),
         list(returnall = TRUE),
@@ -668,6 +688,7 @@ ProSpectSEDlike = function(parm = c(8, 9, 10, 10, 0, -0.5, 0.2), Data) {
         list(speclib = Data$speclib),
         list(Dale = Data$Dale),
         list(AGN = Data$AGN),
+        list(AGN_anav = Data$AGN_anav),
         list(filtout = filtout),
         list(filters = NULL),
         list(returnall = FALSE),
