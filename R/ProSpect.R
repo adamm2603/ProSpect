@@ -51,7 +51,6 @@ ProSpectSED = function(SFH = SFHfunc,
                           IGMabsorb = 0,
                           Inoue14_LAFcoef = NULL,
                           Inoue14_DLAcoef = NULL,
-                          AGN_gal_screen = TRUE,
                           AGN_emission = c("viewing_angle", "angle_averaged"),
                           ...) {
 
