@@ -59,7 +59,7 @@ ProSpectSED = function(SFH = SFHfunc,
         waveout_max = max(waveout)
     }
     else {
-        waveout_max = 9.3499999999999996
+        waveout_max = 9.35
     }
     if ("emission" %in% names(list(...))) {
         if (list(...)$emission & missing(waveout)) {
@@ -122,7 +122,7 @@ ProSpectSED = function(SFH = SFHfunc,
                 flux = SED_Stars_Bdust_Sdust$flux, z = 0, Te = Te_SF, 
                 ff_frac = ff_frac_SF, ff_power = ff_power_SF, 
                 sy_power = sy_power_SF, wavesamp = seq(6, waveout_max, 
-                  by = 0.10000000000000001), flux_in = "wave", 
+                  by = 0.1), flux_in = "wave", 
                 flux_out = "wave")
         }
         else if (!isFALSE(Dale)) {
@@ -205,7 +205,7 @@ ProSpectSED = function(SFH = SFHfunc,
             AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
                 z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
                 sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
-                  by = 0.10000000000000001), flux_in = "wave", 
+                  by = 0.1), flux_in = "wave", 
                 flux_out = "wave", subtractonly = !addradio_AGN)
             AGN = AGN$final
             if (is.null(Final)) {
@@ -246,7 +246,7 @@ ProSpectSED = function(SFH = SFHfunc,
             AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
                 z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
                 sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
-                  by = 0.10000000000000001), flux_in = "wave", 
+                  by = 0.1), flux_in = "wave", 
                 flux_out = "wave", subtractonly = !addradio_AGN)
             AGN = AGN$final
             if (is.null(Final)) {
@@ -286,7 +286,7 @@ ProSpectSED = function(SFH = SFHfunc,
             AGN$final = radiocont(wave = AGN$final$wave, flux = AGN$final$flux, 
                 z = 0, Te = Te_AGN, ff_frac = ff_frac_AGN, ff_power = ff_power_AGN, 
                 sy_power = sy_power_AGN, wavesamp = seq(6, waveout_max, 
-                  by = 0.10000000000000001), flux_in = "wave", 
+                  by = 0.1), flux_in = "wave", 
                 flux_out = "wave", subtractonly = !addradio_AGN)
             AGN = AGN$final
             if (is.null(Final)) {
@@ -335,7 +335,7 @@ ProSpectSED = function(SFH = SFHfunc,
         Flux$flux = convert_wave2freq(flux_wave = Flux$flux * 
             .cgs_to_jansky, wave = Flux$wave)
         if (IGMabsorb > 0 & is.numeric(IGMabsorb)) {
-            sel = which(Flux$wave/(1 + z) < 1215.6700000000001)
+            sel = which(Flux$wave/(1 + z) < 1215.67)
             Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
             sel = which(Flux$wave/(1 + z) < 911.75)
             Flux$flux[sel] = 0
@@ -358,7 +358,7 @@ ProSpectSED = function(SFH = SFHfunc,
         Flux$flux = convert_wave2freq(flux_wave = Flux$flux * 
             .cgs_to_jansky, wave = Flux$wave)
         if (IGMabsorb > 0 & is.numeric(IGMabsorb)) {
-            sel = which(Flux$wave/(1 + z) < 1215.6700000000001)
+            sel = which(Flux$wave/(1 + z) < 1215.67)
             Flux$flux[sel] = Flux$flux[sel] * (1 - IGMabsorb)
             sel = which(Flux$wave/(1 + z) < 911.75)
             Flux$flux[sel] = 0
